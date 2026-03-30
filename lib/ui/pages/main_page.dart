@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:uztelecom/domain/services/dashboard_service.dart';
-import 'package:uztelecom/domain/services/my_courses_service.dart';
-import 'package:uztelecom/domain/services/profile_service.dart';
+import 'package:uztelecom/core/config/app_config.dart';
+import 'package:uztelecom/data/repositories/dashboard_repository.dart';
+import 'package:uztelecom/data/repositories/my_courses_repository.dart';
+import 'package:uztelecom/data/repositories/profile_repository.dart';
 import 'package:uztelecom/ui/l10n/tr.dart';
-import 'package:uztelecom/ui/pages/certificates_page.dart';
-import 'package:uztelecom/ui/pages/darslar_page.dart';
-import 'package:uztelecom/ui/pages/my_courses_page.dart';
 import 'package:uztelecom/ui/pages/no_internet_page.dart';
-import 'package:uztelecom/ui/pages/notifications_page.dart';
+import 'package:uztelecom/core/routing/app_navigator.dart';
 import 'package:uztelecom/ui/utils/network_error.dart';
-import 'package:uztelecom/ui/widgets/connectivity_gate.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -19,9 +16,9 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  final DashboardService _dashboardService = DashboardService();
-  final MyCoursesService _myCoursesService = MyCoursesService();
-  final ProfileService _profileService = ProfileService();
+  final DashboardRepository _dashboardService = DashboardRepository();
+  final MyCoursesRepository _myCoursesRepository = MyCoursesRepository();
+  final ProfileRepository _profileService = ProfileRepository();
   late Future<_MainDashboardData> _future;
   String _appBarName = '';
   bool _offlinePushed = false;
@@ -36,7 +33,7 @@ class _MainPageState extends State<MainPage> {
   @override
   void dispose() {
     _dashboardService.dispose();
-    _myCoursesService.dispose();
+    _myCoursesRepository.dispose();
     _profileService.dispose();
     super.dispose();
   }
@@ -85,7 +82,7 @@ class _MainPageState extends State<MainPage> {
     List<MyCourseItem> myCourses = [];
 
     try {
-      myCourses = await _myCoursesService.fetchMyCourses();
+      myCourses = await _myCoursesRepository.fetchMyCourses();
       for (final c in myCourses) {
         final photo = _absoluteUrl(c.photo);
         if (photo != null && photo.isNotEmpty) {
@@ -134,7 +131,7 @@ class _MainPageState extends State<MainPage> {
     for (final current in currentCourses) {
       if (coursePhotoById[current.courseId] != null) continue;
       try {
-        final detail = await _myCoursesService.fetchCourseDetail(
+        final detail = await _myCoursesRepository.fetchCourseDetail(
           current.courseId,
         );
         final photo = _absoluteUrl(detail.photo);
@@ -172,12 +169,7 @@ class _MainPageState extends State<MainPage> {
   }
 
   String? _absoluteUrl(String? path) {
-    if (path == null || path.isEmpty) return null;
-    if (path.startsWith('http://') || path.startsWith('https://')) {
-      return path;
-    }
-    if (path.startsWith('/')) return 'https://eduapi.uztelecom.uz$path';
-    return 'https://eduapi.uztelecom.uz/$path';
+    return AppConfig.absoluteUrl(path);
   }
 
   void _reload() {
@@ -210,11 +202,7 @@ class _MainPageState extends State<MainPage> {
   }
 
   void _onNotificationsTap() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const ConnectivityGate(child: NotificationsPage()),
-      ),
-    );
+    AppNavigator.pushNotifications(context);
   }
 
   @override
@@ -325,12 +313,7 @@ class _MainDashboardView extends StatelessWidget {
                     icon: Icons.menu_book_outlined,
                     iconColor: const Color(0xFF2563EB),
                     onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              const ConnectivityGate(child: MyCoursesPage()),
-                        ),
-                      );
+                      AppNavigator.pushMyCourses(context);
                     },
                   ),
                   _MiniStatCard(
@@ -343,12 +326,7 @@ class _MainDashboardView extends StatelessWidget {
                     icon: Icons.workspace_premium_outlined,
                     iconColor: const Color(0xFFF59E0B),
                     onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              const ConnectivityGate(child: CertificatesPage()),
-                        ),
-                      );
+                      AppNavigator.pushCertificates(context);
                     },
                   ),
                   _MiniStatCard(
@@ -705,15 +683,10 @@ class _CurrentCoursesCard extends StatelessWidget {
 
   void _openCourseDetail(BuildContext context, int courseId) {
     if (courseId <= 0) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => ConnectivityGate(
-          child: CourseInfoPage(
-            courseId: courseId,
-            useMyCoursesDetailApi: true,
-          ),
-        ),
-      ),
+    AppNavigator.pushCourseInfo(
+      context,
+      courseId: courseId,
+      useMyCoursesDetailApi: true,
     );
   }
 

@@ -1,27 +1,25 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:uztelecom/domain/services/courses_service.dart';
-import 'package:uztelecom/domain/services/dashboard_service.dart';
+import 'package:uztelecom/core/config/app_endpoints.dart';
+import 'package:uztelecom/data/repositories/courses_repository.dart';
+import 'package:uztelecom/data/repositories/dashboard_repository.dart';
 import 'package:uztelecom/domain/provider/provider.dart';
-import 'package:uztelecom/domain/services/login_service.dart';
+import 'package:uztelecom/data/repositories/auth_repository.dart';
 
-class MyCoursesService {
-  MyCoursesService({http.Client? client, LoginService? authService})
+class MyCoursesRepository {
+  MyCoursesRepository({http.Client? client, AuthRepository? authService})
     : _client = client ?? http.Client(),
-      _authService = authService ?? LoginService(),
-      _dashboardService = DashboardService();
+      _authService = authService ?? AuthRepository(),
+      _dashboardService = DashboardRepository();
 
   final http.Client _client;
-  final LoginService _authService;
-  final DashboardService _dashboardService;
-
-  static const String _url =
-      'https://eduapi.uztelecom.uz/api/v1/listener/my-training-courses/';
+  final AuthRepository _authService;
+  final DashboardRepository _dashboardService;
 
   Future<List<MyCourseItem>> fetchMyCourses() async {
     final items = <MyCourseItem>[];
-    Uri? nextUrl = Uri.parse(_url);
+    Uri? nextUrl = AppEndpoints.myTrainingCourses();
     var safety = 0;
 
     while (nextUrl != null && safety < 10) {
@@ -63,11 +61,9 @@ class MyCoursesService {
   }
 
   Future<CourseItem> fetchCourseDetail(int id) async {
-    final url =
-        'https://eduapi.uztelecom.uz/api/v1/listener/my-training-courses/$id/detail/';
     final response = await _authService.authorizedRequest(
       request: (token) => _client.get(
-        Uri.parse(url),
+        AppEndpoints.myTrainingCourseDetail(id),
         headers: {
           'accept': 'application/json',
           'Authorization': 'Bearer $token',

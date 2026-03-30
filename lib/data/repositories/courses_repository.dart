@@ -1,23 +1,21 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:uztelecom/core/config/app_endpoints.dart';
 import 'package:uztelecom/domain/provider/provider.dart';
-import 'package:uztelecom/domain/services/login_service.dart';
+import 'package:uztelecom/data/repositories/auth_repository.dart';
 
-class CoursesService {
-  CoursesService({http.Client? client, LoginService? authService})
-      : _client = client ?? http.Client(),
-        _authService = authService ?? LoginService();
+class CoursesRepository {
+  CoursesRepository({http.Client? client, AuthRepository? authService})
+    : _client = client ?? http.Client(),
+      _authService = authService ?? AuthRepository();
 
   final http.Client _client;
-  final LoginService _authService;
-
-  static const String _url =
-      'https://eduapi.uztelecom.uz/api/v1/listener/allowed-resources/';
+  final AuthRepository _authService;
 
   Future<List<CourseItem>> fetchCourses() async {
     final items = <CourseItem>[];
-    Uri? nextUrl = Uri.parse(_url);
+    Uri? nextUrl = AppEndpoints.allowedResources();
     var safety = 0;
 
     while (nextUrl != null && safety < 10) {
@@ -53,11 +51,9 @@ class CoursesService {
   }
 
   Future<CourseItem> fetchCourseDetail(int id) async {
-    final url =
-        'https://eduapi.uztelecom.uz/api/v1/listener/allowed-resources/$id/detail/';
     final response = await _authService.authorizedRequest(
       request: (token) => _client.get(
-        Uri.parse(url),
+        AppEndpoints.allowedResourceDetail(id),
         headers: {
           'accept': 'application/json',
           'Authorization': 'Bearer $token',
@@ -67,7 +63,8 @@ class CoursesService {
 
     if (response.statusCode != 200) {
       throw Exception(
-        _extractMessage(response.body) ?? 'Kurs maʼlumotlarini olishda xatolik.',
+        _extractMessage(response.body) ??
+            'Kurs maʼlumotlarini olishda xatolik.',
       );
     }
 
@@ -146,8 +143,7 @@ class CourseItem {
 
   factory CourseItem.fromJson(Map<String, dynamic> json) {
     final source = _flattenEduResources(json);
-    final language =
-        source['language_display'] as Map<String, dynamic>? ?? {};
+    final language = source['language_display'] as Map<String, dynamic>? ?? {};
     final audiences = source['audiences'] as List<dynamic>? ?? [];
     final audience = audiences.isNotEmpty
         ? Map<String, dynamic>.from(audiences.first as Map)
@@ -163,20 +159,20 @@ class CourseItem {
       filePath: source['file_path']?.toString(),
       launchUrl: _pickLaunchUrl(json) ?? _pickLaunchUrl(source),
       fullQuery: _pickFullQuery(json) ?? _pickFullQuery(source),
-      duration: source['duration_display']?.toString() ??
+      duration:
+          source['duration_display']?.toString() ??
           source['duration']?.toString(),
       hours: (source['hours'] is num) ? (source['hours'] as num).toInt() : null,
       days: (source['days'] is num)
           ? (source['days'] as num).toInt()
           : (source['days_count'] is num)
-              ? (source['days_count'] as num).toInt()
-              : null,
+          ? (source['days_count'] as num).toInt()
+          : null,
       courseName: _pickLang(source, 'name'),
       language: _pickLang(language, 'name'),
       trainerName: _pickTrainerName(json) ?? _pickTrainerName(source),
-      listenerCount: _pickInt(
-        json['listener_count'],
-      ) ??
+      listenerCount:
+          _pickInt(json['listener_count']) ??
           _pickInt(source['listener_count']),
       trainingType: null,
       specType: null,
@@ -321,20 +317,20 @@ class CourseItem {
       final value = json[key]?.toString();
       if (value != null && value.isNotEmpty) return value;
     }
-    return _findStringByKeysDeep(json, keys.map((e) => e.toLowerCase()).toSet());
+    return _findStringByKeysDeep(
+      json,
+      keys.map((e) => e.toLowerCase()).toSet(),
+    );
   }
 
   static String? _pickFullQuery(Map<String, dynamic> json) {
-    final direct = _pickStringByKeysDeep(
-      json,
-      const [
-        'full_query',
-        'query',
-        'launch_query',
-        'scorm_query',
-        'xapi_query',
-      ],
-    );
+    final direct = _pickStringByKeysDeep(json, const [
+      'full_query',
+      'query',
+      'launch_query',
+      'scorm_query',
+      'xapi_query',
+    ]);
     if (_looksLikeFullQuery(direct)) return direct;
     return _findFullQueryDeep(json);
   }

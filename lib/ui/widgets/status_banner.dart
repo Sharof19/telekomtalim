@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:uztelecom/ui/l10n/tr.dart';
-import 'package:uztelecom/ui/theme/home_palette.dart';
+import 'package:uztelecom/core/theme/app_colors.dart';
 
 class StatusBanner {
   static Future<void> show(
@@ -13,9 +13,10 @@ class StatusBanner {
     String? actionLabel,
     VoidCallback? onAction,
   }) async {
-    final color = success ? const Color(0xFF7CB342) : const Color(0xFFE74C3C);
+    final color = success ? AppColors.success : AppColors.error;
     final resolvedMessage = _friendlyMessage(context, message);
-    final buttonLabel = actionLabel ??
+    final buttonLabel =
+        actionLabel ??
         (success
             ? tr(context, uz: 'Davom etish', ru: 'Продолжить')
             : tr(context, uz: 'Yopish', ru: 'Закрыть'));
@@ -37,7 +38,7 @@ class StatusBanner {
                 borderRadius: BorderRadius.circular(26),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.14),
+                    color: Colors.black.withValues(alpha: 0.14),
                     blurRadius: 18,
                     offset: const Offset(0, 10),
                   ),
@@ -55,10 +56,7 @@ class StatusBanner {
                         children: [
                           ClipPath(
                             clipper: _BannerClipper(),
-                            child: Container(
-                              color: color,
-                              height: 130,
-                            ),
+                            child: Container(color: color, height: 130),
                           ),
                           Container(
                             width: 64,
@@ -111,8 +109,9 @@ class StatusBanner {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: color,
                                 foregroundColor: Colors.white,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),

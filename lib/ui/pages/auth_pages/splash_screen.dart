@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:uztelecom/domain/services/login_service.dart';
-import 'package:uztelecom/ui/routes/app_routes.dart';
+import 'package:uztelecom/data/repositories/auth_repository.dart';
+import 'package:uztelecom/core/routing/app_navigator.dart';
+import 'package:uztelecom/core/theme/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -10,7 +11,7 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  final LoginService _loginService = LoginService();
+  final AuthRepository _loginService = AuthRepository();
 
   @override
   void initState() {
@@ -29,20 +30,21 @@ class _SplashScreenState extends State<SplashScreen> {
     try {
       final token = await _loginService.getValidAccessToken();
       if (!mounted) return;
-      final nextRoute = (token != null && token.isNotEmpty)
-          ? AppRoutes.homePage
-          : AppRoutes.loginPage;
-      Navigator.of(context).pushReplacementNamed(nextRoute);
+      if (token != null && token.isNotEmpty) {
+        await AppNavigator.replaceWithHome(context);
+      } else {
+        await AppNavigator.replaceWithLogin(context);
+      }
     } catch (_) {
       if (!mounted) return;
-      Navigator.of(context).pushReplacementNamed(AppRoutes.loginPage);
+      await AppNavigator.replaceWithLogin(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.authBackground,
       body: const Center(child: _SplashLogo()),
     );
   }

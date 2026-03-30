@@ -2,22 +2,13 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uztelecom/core/config/app_endpoints.dart';
 
-class LoginService {
-  LoginService({http.Client? client}) : _client = client ?? http.Client();
+class AuthRepository {
+  AuthRepository({http.Client? client}) : _client = client ?? http.Client();
 
   final http.Client _client;
   static Future<String?>? _ongoingRefresh;
-
-  static const String _loginUrl = 'https://eduapi.uztelecom.uz/api/v1/login/';
-  static const String _verifyUrl =
-      'https://eduapi.uztelecom.uz/api/v1/verify-code/';
-  static const String _resendUrl =
-      'https://eduapi.uztelecom.uz/api/v1/resend-code/';
-  static const String _refreshUrl =
-      'https://eduapi.uztelecom.uz/api/v1/refresh-token/';
-  static const String _logoutUrl =
-      'https://eduapi.uztelecom.uz/api/v1/logout/';
 
   static const _accessKey = 'auth_access_token';
   static const _refreshKey = 'auth_refresh_token';
@@ -29,7 +20,7 @@ class LoginService {
     required String password,
   }) async {
     final response = await _client.post(
-      Uri.parse(_loginUrl),
+      AppEndpoints.login(),
       headers: const {
         'accept': 'application/json',
         'Content-Type': 'application/json',
@@ -44,12 +35,9 @@ class LoginService {
     throw Exception(_extractMessage(response.body) ?? 'Login xatosi.');
   }
 
-  Future<void> verifyCode({
-    required String login,
-    required String code,
-  }) async {
+  Future<void> verifyCode({required String login, required String code}) async {
     final response = await _client.post(
-      Uri.parse(_verifyUrl),
+      AppEndpoints.verifyCode(),
       headers: const {
         'accept': 'application/json',
         'Content-Type': 'application/json',
@@ -67,7 +55,7 @@ class LoginService {
 
   Future<void> resendCode({required String login}) async {
     final response = await _client.post(
-      Uri.parse(_resendUrl),
+      AppEndpoints.resendCode(),
       headers: const {
         'accept': 'application/json',
         'Content-Type': 'application/json',
@@ -105,7 +93,8 @@ class LoginService {
     }
 
     var response = await request(token);
-    final shouldRefresh = _authErrorCodes.contains(response.statusCode) ||
+    final shouldRefresh =
+        _authErrorCodes.contains(response.statusCode) ||
         _isTokenInvalidResponse(response.body);
     if (retryOnAuthError && shouldRefresh) {
       try {
@@ -160,9 +149,12 @@ class LoginService {
     final refresh = prefs.getString(_refreshKey);
     final access = prefs.getString(_accessKey);
 
-    if (refresh != null && refresh.isNotEmpty && access != null && access.isNotEmpty) {
+    if (refresh != null &&
+        refresh.isNotEmpty &&
+        access != null &&
+        access.isNotEmpty) {
       final response = await _client.post(
-        Uri.parse(_logoutUrl),
+        AppEndpoints.logout(),
         headers: {
           'accept': 'application/json',
           'Content-Type': 'application/json',
@@ -209,7 +201,7 @@ class LoginService {
     if (refresh == null) return null;
 
     final response = await _client.post(
-      Uri.parse(_refreshUrl),
+      AppEndpoints.refreshToken(),
       headers: const {
         'accept': 'application/json',
         'Content-Type': 'application/json',
@@ -257,8 +249,9 @@ class LoginService {
       final parts = jwt.split('.');
       if (parts.length != 3) return null;
       final normalized = base64Url.normalize(parts[1]);
-      final payload = jsonDecode(utf8.decode(base64Url.decode(normalized)))
-          as Map<String, dynamic>;
+      final payload =
+          jsonDecode(utf8.decode(base64Url.decode(normalized)))
+              as Map<String, dynamic>;
       return payload['exp'] as int?;
     } catch (_) {
       return null;

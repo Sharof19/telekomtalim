@@ -4,11 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sms_autofill/sms_autofill.dart';
-import 'package:uztelecom/domain/services/login_service.dart';
-import 'package:uztelecom/domain/services/profile_service.dart';
+import 'package:uztelecom/data/repositories/auth_repository.dart';
+import 'package:uztelecom/data/repositories/profile_repository.dart';
 import 'package:uztelecom/ui/l10n/tr.dart';
-import 'package:uztelecom/ui/routes/app_routes.dart';
-import 'package:uztelecom/ui/theme/home_palette.dart';
+import 'package:uztelecom/core/routing/app_navigator.dart';
+import 'package:uztelecom/core/theme/app_colors.dart';
 import 'package:uztelecom/ui/widgets/status_banner.dart';
 
 class OtpPage extends StatefulWidget {
@@ -23,8 +23,8 @@ class OtpPage extends StatefulWidget {
 class _OtpPageState extends State<OtpPage> with CodeAutoFill {
   final _formKey = GlobalKey<FormState>();
   final _codeController = TextEditingController();
-  final LoginService _loginService = LoginService();
-  final ProfileService _profileService = ProfileService();
+  final AuthRepository _loginService = AuthRepository();
+  final ProfileRepository _profileService = ProfileRepository();
   Timer? _timer;
 
   bool _autoValidate = false;
@@ -70,7 +70,8 @@ class _OtpPageState extends State<OtpPage> with CodeAutoFill {
       );
     }
     if (normalized.length == 6) {
-      final isAndroid = !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+      final isAndroid =
+          !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
       if (isAndroid && _lastCopiedOtp != normalized) {
         Clipboard.setData(ClipboardData(text: normalized));
         _lastCopiedOtp = normalized;
@@ -121,7 +122,7 @@ class _OtpPageState extends State<OtpPage> with CodeAutoFill {
       }
       if (!mounted) return;
       TextInput.finishAutofillContext();
-      Navigator.of(context).pushReplacementNamed(AppRoutes.homePage);
+      AppNavigator.replaceWithHome(context);
     } catch (e) {
       if (!mounted) return;
       await StatusBanner.show(
@@ -146,21 +147,17 @@ class _OtpPageState extends State<OtpPage> with CodeAutoFill {
     final login = _normalizeLogin(widget.login);
 
     try {
+      final messenger = ScaffoldMessenger.of(context);
+      final resentText = tr(
+        context,
+        uz: 'Kod qayta yuborildi.',
+        ru: 'Код отправлен повторно.',
+      );
       await _loginService.resendCode(login: login);
       if (!mounted) return;
       _startResendTimer(60);
       await _startOtpAutofill();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            tr(
-              context,
-              uz: 'Kod qayta yuborildi.',
-              ru: 'Код отправлен повторно.',
-            ),
-          ),
-        ),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(resentText)));
     } catch (e) {
       if (!mounted) return;
       await StatusBanner.show(
@@ -200,28 +197,26 @@ class _OtpPageState extends State<OtpPage> with CodeAutoFill {
   Widget build(BuildContext context) {
     final lightTheme = ThemeData.light().copyWith(
       colorScheme: const ColorScheme.light(
-        primary: HomePalette.brandBlue,
-        secondary: HomePalette.brandBlue,
-        background: Colors.white,
-        surface: Colors.white,
-        onPrimary: Colors.white,
-        onSecondary: Colors.white,
-        onBackground: Colors.black87,
+        primary: AppColors.brandBlue,
+        secondary: AppColors.brandBlue,
+        surface: AppColors.white,
+        onPrimary: AppColors.white,
+        onSecondary: AppColors.white,
         onSurface: Colors.black87,
       ),
-      iconTheme: const IconThemeData(color: HomePalette.brandBlue),
+      iconTheme: const IconThemeData(color: AppColors.brandBlue),
     );
     return Theme(
       data: lightTheme,
       child: Builder(
         builder: (context) {
           final scheme = Theme.of(context).colorScheme;
-          final textPrimary = scheme.onBackground;
-          final textMuted = scheme.onBackground.withOpacity(0.6);
+          final textPrimary = scheme.onSurface;
+          final textMuted = scheme.onSurface.withValues(alpha: 0.6);
           return Scaffold(
-            backgroundColor: Colors.white,
+            backgroundColor: AppColors.authBackground,
             appBar: AppBar(
-              backgroundColor: Colors.white,
+              backgroundColor: AppColors.authBackground,
               elevation: 0,
               foregroundColor: textPrimary,
               title: Text(
@@ -231,7 +226,10 @@ class _OtpPageState extends State<OtpPage> with CodeAutoFill {
             ),
             body: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -260,7 +258,7 @@ class _OtpPageState extends State<OtpPage> with CodeAutoFill {
                         borderRadius: BorderRadius.circular(22),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
+                            color: Colors.black.withValues(alpha: 0.08),
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           ),
@@ -297,18 +295,19 @@ class _OtpPageState extends State<OtpPage> with CodeAutoFill {
                                 ),
                                 filled: true,
                                 fillColor: Colors.white,
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 18),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 18,
+                                ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
                                   borderSide: const BorderSide(
-                                    color: HomePalette.border,
+                                    color: AppColors.authBorder,
                                   ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
                                   borderSide: const BorderSide(
-                                    color: HomePalette.border,
+                                    color: AppColors.authBorder,
                                   ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
@@ -322,7 +321,11 @@ class _OtpPageState extends State<OtpPage> with CodeAutoFill {
                               validator: (value) {
                                 final digits = (value ?? '').trim();
                                 if (digits.isEmpty) {
-                                  return tr(context, uz: 'Kod kiriting.', ru: 'Введите код.');
+                                  return tr(
+                                    context,
+                                    uz: 'Kod kiriting.',
+                                    ru: 'Введите код.',
+                                  );
                                 }
                                 if (digits.length < 6) {
                                   return tr(
@@ -343,7 +346,9 @@ class _OtpPageState extends State<OtpPage> with CodeAutoFill {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: scheme.primary,
                                   foregroundColor: scheme.onPrimary,
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(18),
                                   ),
@@ -361,7 +366,11 @@ class _OtpPageState extends State<OtpPage> with CodeAutoFill {
                                         ),
                                       )
                                     : Text(
-                                        tr(context, uz: 'Tasdiqlash', ru: 'Подтвердить'),
+                                        tr(
+                                          context,
+                                          uz: 'Tasdiqlash',
+                                          ru: 'Подтвердить',
+                                        ),
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w700,
@@ -371,8 +380,9 @@ class _OtpPageState extends State<OtpPage> with CodeAutoFill {
                             ),
                             const SizedBox(height: 10),
                             TextButton(
-                              onPressed:
-                                  _resendSeconds > 0 ? null : _resendCode,
+                              onPressed: _resendSeconds > 0
+                                  ? null
+                                  : _resendCode,
                               child: Text(
                                 _resendSeconds > 0
                                     ? tr(

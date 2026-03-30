@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:uztelecom/domain/services/exams_service.dart';
+import 'package:uztelecom/data/repositories/exams_repository.dart';
 import 'package:uztelecom/ui/l10n/tr.dart';
+import 'package:uztelecom/core/routing/app_navigator.dart';
 import 'package:uztelecom/ui/utils/network_error.dart';
 
 class ExamAttemptsPage extends StatefulWidget {
@@ -18,7 +19,7 @@ class ExamAttemptsPage extends StatefulWidget {
 }
 
 class _ExamAttemptsPageState extends State<ExamAttemptsPage> {
-  final ExamsService _service = ExamsService();
+  final ExamsRepository _service = ExamsRepository();
   late Future<List<ExamAttemptItem>> _future;
 
   @override
@@ -207,14 +208,11 @@ class _ExamAttemptsPageState extends State<ExamAttemptsPage> {
                       child: OutlinedButton.icon(
                         onPressed: finished
                             ? () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => ExamResultPage(
-                                      examId: widget.examId,
-                                      examTitle: widget.examTitle,
-                                      attemptNumber: item.attemptNumber,
-                                    ),
-                                  ),
+                                AppNavigator.pushExamResult(
+                                  context,
+                                  examId: widget.examId,
+                                  examTitle: widget.examTitle,
+                                  attemptNumber: item.attemptNumber,
                                 );
                               }
                             : null,
@@ -256,7 +254,7 @@ class ExamResultPage extends StatefulWidget {
 }
 
 class _ExamResultPageState extends State<ExamResultPage> {
-  final ExamsService _service = ExamsService();
+  final ExamsRepository _service = ExamsRepository();
   late Future<ExamResultDetail> _future;
 
   @override

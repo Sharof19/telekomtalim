@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-class FaceIdService {
-  FaceIdService({http.Client? client}) : _client = client ?? http.Client();
+class FaceIdRepository {
+  FaceIdRepository({http.Client? client}) : _client = client ?? http.Client();
 
   final http.Client _client;
   static const _accessKey = 'access_token';
@@ -23,10 +23,7 @@ class FaceIdService {
 
     request.fields['student_id_number'] = studentId;
     request.files.add(
-      await http.MultipartFile.fromPath(
-        'image',
-        imageFile.path,
-      ),
+      await http.MultipartFile.fromPath('image', imageFile.path),
     );
     request.headers['Accept'] = 'application/json';
 
@@ -39,9 +36,7 @@ class FaceIdService {
     }
 
     final serverMessage = _extractMessage(responseBody);
-    throw Exception(
-      serverMessage ?? 'Server error: ${response.statusCode}',
-    );
+    throw Exception(serverMessage ?? 'Server error: ${response.statusCode}');
   }
 
   Future<String?> getValidAccessToken() async {
@@ -105,8 +100,9 @@ class FaceIdService {
       final parts = jwt.split('.');
       if (parts.length != 3) return null;
       final normalized = base64Url.normalize(parts[1]);
-      final payload = jsonDecode(utf8.decode(base64Url.decode(normalized)))
-          as Map<String, dynamic>;
+      final payload =
+          jsonDecode(utf8.decode(base64Url.decode(normalized)))
+              as Map<String, dynamic>;
       return payload['exp'] as int?;
     } catch (_) {
       return null;

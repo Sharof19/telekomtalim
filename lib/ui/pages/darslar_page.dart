@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:uztelecom/core/config/app_config.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
-import 'package:uztelecom/domain/services/courses_service.dart';
-import 'package:uztelecom/domain/services/login_service.dart';
-import 'package:uztelecom/domain/services/my_courses_service.dart';
+import 'package:uztelecom/data/repositories/courses_repository.dart';
+import 'package:uztelecom/data/repositories/auth_repository.dart';
+import 'package:uztelecom/data/repositories/my_courses_repository.dart';
 import 'package:uztelecom/ui/l10n/tr.dart';
-import 'package:uztelecom/ui/widgets/connectivity_gate.dart';
 import 'package:uztelecom/ui/pages/no_internet_page.dart';
-import 'package:uztelecom/ui/pages/notifications_page.dart';
+import 'package:uztelecom/core/routing/app_navigator.dart';
 import 'package:uztelecom/ui/utils/network_error.dart';
 
 class CoursesPage extends StatefulWidget {
@@ -26,7 +26,7 @@ class DarslarPage extends CoursesPage {
 }
 
 class _CoursesPageState extends State<CoursesPage> {
-  final CoursesService _service = CoursesService();
+  final CoursesRepository _service = CoursesRepository();
   late Future<List<CourseItem>> _future;
   bool _offlinePushed = false;
 
@@ -66,11 +66,7 @@ class _CoursesPageState extends State<CoursesPage> {
   }
 
   void _openNotifications() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const ConnectivityGate(child: NotificationsPage()),
-      ),
-    );
+    AppNavigator.pushNotifications(context);
   }
 
   @override
@@ -170,9 +166,7 @@ class _CourseCard extends StatelessWidget {
   const _CourseCard({required this.item});
 
   String? _absoluteUrl(String? path) {
-    if (path == null || path.isEmpty) return null;
-    if (path.startsWith('http')) return path;
-    return 'https://eduapi.uztelecom.uz$path';
+    return AppConfig.absoluteUrl(path);
   }
 
   String? _durationLabel(BuildContext context) {
@@ -224,12 +218,10 @@ class _CourseCard extends StatelessWidget {
     final durationLabel = _durationLabel(context);
     return InkWell(
       onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => ConnectivityGate(
-              child: CourseInfoPage(courseId: item.id, initialItem: item),
-            ),
-          ),
+        AppNavigator.pushCourseInfo(
+          context,
+          courseId: item.id,
+          initialItem: item,
         );
       },
       borderRadius: BorderRadius.circular(18),
@@ -498,29 +490,20 @@ class CourseInfoPage extends StatefulWidget {
 
 class _CourseInfoPageState extends State<CourseInfoPage> {
   VideoPlayerController? _videoController;
-  final LoginService _loginService = LoginService();
-  final CoursesService _coursesService = CoursesService();
-  final MyCoursesService _myCoursesService = MyCoursesService();
+  final AuthRepository _loginService = AuthRepository();
+  final CoursesRepository _coursesService = CoursesRepository();
+  final MyCoursesRepository _myCoursesRepository = MyCoursesRepository();
   bool _requestSubmitted = false;
   bool _playRequested = false;
   String? _videoError;
   late final Future<CourseItem> _detailFuture;
 
   String? _absoluteUrl(String? path) {
-    if (path == null || path.isEmpty) return null;
-    if (path.startsWith('http')) return path;
-    if (path.startsWith('/')) return 'https://eduapi.uztelecom.uz$path';
-    return 'https://eduapi.uztelecom.uz/$path';
+    return AppConfig.absoluteUrl(path);
   }
 
   String? _resourceUrl(String? path) {
-    if (path == null || path.isEmpty) return null;
-    if (path.startsWith('http')) return path;
-    if (path.startsWith('/media/')) {
-      return 'https://eduapi.uztelecom.uz$path';
-    }
-    final normalized = path.startsWith('/') ? path.substring(1) : path;
-    return 'https://eduapi.uztelecom.uz/media/$normalized';
+    return AppConfig.mediaUrl(path);
   }
 
   String? _resolveVideoUrl(CourseItem item) {
@@ -639,7 +622,7 @@ class _CourseInfoPageState extends State<CourseInfoPage> {
   void initState() {
     super.initState();
     _detailFuture = widget.useMyCoursesDetailApi
-        ? _myCoursesService.fetchCourseDetail(widget.courseId)
+        ? _myCoursesRepository.fetchCourseDetail(widget.courseId)
         : _coursesService.fetchCourseDetail(widget.courseId);
   }
 
@@ -683,7 +666,7 @@ class _CourseInfoPageState extends State<CourseInfoPage> {
     _videoController?.dispose();
     _loginService.dispose();
     _coursesService.dispose();
-    _myCoursesService.dispose();
+    _myCoursesRepository.dispose();
     super.dispose();
   }
 

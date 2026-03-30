@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:uztelecom/domain/services/exams_service.dart';
+import 'package:uztelecom/data/repositories/exams_repository.dart';
 import 'package:uztelecom/ui/l10n/tr.dart';
 
 class ExamSessionPage extends StatefulWidget {
@@ -21,7 +21,7 @@ class ExamSessionPage extends StatefulWidget {
 }
 
 class _ExamSessionPageState extends State<ExamSessionPage> {
-  final ExamsService _examsService = ExamsService();
+  final ExamsRepository _examsService = ExamsRepository();
   late final List<int?> _selectedAnswerIds;
   late int _currentIndex;
   Timer? _timer;

@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uztelecom/ui/l10n/tr.dart';
 import 'package:uztelecom/ui/pages/darslar_page.dart';
 import 'package:uztelecom/ui/pages/my_courses_page.dart';
-import 'package:uztelecom/ui/pages/notifications_page.dart';
-import 'package:uztelecom/ui/widgets/connectivity_gate.dart';
+import 'package:uztelecom/core/routing/app_navigator.dart';
 
 class CoursesHubPage extends StatefulWidget {
   const CoursesHubPage({super.key});
@@ -16,11 +15,7 @@ class _CoursesHubPageState extends State<CoursesHubPage> {
   int _index = 0;
 
   void _openNotifications() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const ConnectivityGate(child: NotificationsPage()),
-      ),
-    );
+    AppNavigator.pushNotifications(context);
   }
 
   @override

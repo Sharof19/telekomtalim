@@ -2,14 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:uztelecom/domain/services/bbb_service.dart';
-import 'package:uztelecom/domain/services/login_service.dart';
-import 'package:uztelecom/domain/services/schedule_service.dart';
+import 'package:uztelecom/data/repositories/bbb_repository.dart';
+import 'package:uztelecom/data/repositories/auth_repository.dart';
+import 'package:uztelecom/data/repositories/schedule_repository.dart';
 import 'package:uztelecom/ui/l10n/tr.dart';
 import 'package:uztelecom/ui/pages/no_internet_page.dart';
-import 'package:uztelecom/ui/pages/notifications_page.dart';
+import 'package:uztelecom/core/routing/app_navigator.dart';
 import 'package:uztelecom/ui/utils/network_error.dart';
-import 'package:uztelecom/ui/widgets/connectivity_gate.dart';
 
 class TablePage extends StatefulWidget {
   const TablePage({super.key});
@@ -19,7 +18,7 @@ class TablePage extends StatefulWidget {
 }
 
 class TablePageState extends State<TablePage> {
-  final ScheduleService _service = ScheduleService();
+  final ScheduleRepository _service = ScheduleRepository();
   late Future<ScheduleData> _future;
   late DateTime _weekStart;
   bool _offlinePushed = false;
@@ -82,11 +81,7 @@ class TablePageState extends State<TablePage> {
   }
 
   void _onNotificationsTap() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const ConnectivityGate(child: NotificationsPage()),
-      ),
-    );
+    AppNavigator.pushNotifications(context);
   }
 
   @override
@@ -201,8 +196,8 @@ class _TimetableView extends StatefulWidget {
 }
 
 class _TimetableViewState extends State<_TimetableView> {
-  final BbbService _bbbService = BbbService();
-  final LoginService _loginService = LoginService();
+  final BbbRepository _bbbService = BbbRepository();
+  final AuthRepository _loginService = AuthRepository();
   late int _selectedColumnIndex;
 
   @override

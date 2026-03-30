@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:uztelecom/domain/services/profile_service.dart';
+import 'package:uztelecom/data/repositories/profile_repository.dart';
 import 'package:uztelecom/ui/l10n/tr.dart';
 
 class ProfileInfoPage extends StatefulWidget {
@@ -11,7 +11,7 @@ class ProfileInfoPage extends StatefulWidget {
 }
 
 class _ProfileInfoPageState extends State<ProfileInfoPage> {
-  final ProfileService _service = ProfileService();
+  final ProfileRepository _service = ProfileRepository();
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();

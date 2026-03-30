@@ -1,29 +1,21 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:uztelecom/domain/services/login_service.dart';
+import 'package:uztelecom/core/config/app_endpoints.dart';
+import 'package:uztelecom/data/repositories/auth_repository.dart';
 
-class ExamsService {
-  ExamsService({http.Client? client, LoginService? authService})
+class ExamsRepository {
+  ExamsRepository({http.Client? client, AuthRepository? authService})
     : _client = client ?? http.Client(),
-      _authService = authService ?? LoginService();
+      _authService = authService ?? AuthRepository();
 
   final http.Client _client;
-  final LoginService _authService;
-
-  static const String _examsUrl =
-      'https://eduapi.uztelecom.uz/api/v1/my-exams/';
-  static const String _startSuffix = 'start/';
-  static const String _saveAnswerUrl =
-      'https://eduapi.uztelecom.uz/api/v1/exam/save-answer/';
-  static const String _finishUrl =
-      'https://eduapi.uztelecom.uz/api/v1/exam/finish/';
-  static const String _examBaseUrl = 'https://eduapi.uztelecom.uz/api/v1/exam/';
+  final AuthRepository _authService;
 
   Future<ExamsResult> fetchMyExams() async {
     final response = await _authService.authorizedRequest(
       request: (token) => _client.get(
-        Uri.parse(_examsUrl),
+        AppEndpoints.myExams(),
         headers: {
           'accept': 'application/json',
           'Authorization': 'Bearer $token',
@@ -51,7 +43,7 @@ class ExamsService {
   Future<ExamStartResult> startExam(int examId) async {
     final response = await _authService.authorizedRequest(
       request: (token) => _client.post(
-        Uri.parse('$_examsUrl$examId/$_startSuffix'),
+        AppEndpoints.startExam(examId),
         headers: {
           'accept': 'application/json',
           'Authorization': 'Bearer $token',
@@ -84,7 +76,7 @@ class ExamsService {
   }) async {
     final response = await _authService.authorizedRequest(
       request: (token) => _client.post(
-        Uri.parse(_saveAnswerUrl),
+        AppEndpoints.saveExamAnswer(),
         headers: {
           'accept': 'application/json',
           'Content-Type': 'application/json',
@@ -109,7 +101,7 @@ class ExamsService {
   Future<String?> finishExam({required int examId}) async {
     final response = await _authService.authorizedRequest(
       request: (token) => _client.post(
-        Uri.parse(_finishUrl),
+        AppEndpoints.finishExam(),
         headers: {
           'accept': 'application/json',
           'Content-Type': 'application/json',
@@ -137,7 +129,7 @@ class ExamsService {
   Future<List<ExamAttemptItem>> fetchAttempts(int examId) async {
     final response = await _authService.authorizedRequest(
       request: (token) => _client.get(
-        Uri.parse('$_examBaseUrl$examId/attempts/'),
+        AppEndpoints.examAttempts(examId),
         headers: {
           'accept': 'application/json',
           'Authorization': 'Bearer $token',
@@ -167,7 +159,7 @@ class ExamsService {
   }) async {
     final response = await _authService.authorizedRequest(
       request: (token) => _client.get(
-        Uri.parse('$_examBaseUrl$examId/result/$attemptNumber/'),
+        AppEndpoints.examResult(examId, attemptNumber),
         headers: {
           'accept': 'application/json',
           'Authorization': 'Bearer $token',

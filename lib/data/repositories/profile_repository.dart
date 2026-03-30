@@ -2,24 +2,22 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uztelecom/core/config/app_endpoints.dart';
 
-import 'login_service.dart';
+import 'auth_repository.dart';
 
-class ProfileService {
-  ProfileService({http.Client? client, LoginService? authService})
+class ProfileRepository {
+  ProfileRepository({http.Client? client, AuthRepository? authService})
     : _client = client ?? http.Client(),
-      _authService = authService ?? LoginService();
+      _authService = authService ?? AuthRepository();
 
   final http.Client _client;
-  final LoginService _authService;
+  final AuthRepository _authService;
 
   static const _fullNameKey = 'profile_full_name';
   static const _studentIdKey = 'profile_student_id';
   static const _usernameKey = 'profile_username';
   static const _imageUrlKey = 'profile_image_url';
-  static const _profileUrl = 'https://eduapi.uztelecom.uz/api/v1/profile/';
-  static const _changeProfileUrl =
-      'https://eduapi.uztelecom.uz/api/v1/change-profile/';
 
   Future<ProfileInfo?> getCachedProfile() async {
     final prefs = await SharedPreferences.getInstance();
@@ -52,7 +50,7 @@ class ProfileService {
 
     final response = await _authService.authorizedRequest(
       request: (token) => _client.get(
-        Uri.parse(_profileUrl),
+        AppEndpoints.profile(),
         headers: {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
@@ -99,7 +97,7 @@ class ProfileService {
   Future<EditableProfileInfo> fetchEditableProfile() async {
     final response = await _authService.authorizedRequest(
       request: (token) => _client.get(
-        Uri.parse(_profileUrl),
+        AppEndpoints.profile(),
         headers: {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
@@ -141,7 +139,7 @@ class ProfileService {
 
     final response = await _authService.authorizedRequest(
       request: (token) => _client.patch(
-        Uri.parse(_changeProfileUrl),
+        AppEndpoints.changeProfile(),
         headers: {
           'accept': 'application/json',
           'Content-Type': 'application/json',

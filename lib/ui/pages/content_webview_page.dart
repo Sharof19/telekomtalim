@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:uztelecom/core/config/app_config.dart';
 import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:uztelecom/domain/services/login_service.dart';
+import 'package:uztelecom/data/repositories/auth_repository.dart';
 
 class ContentWebviewPage extends StatefulWidget {
   final String url;
@@ -21,7 +22,7 @@ class ContentWebviewPage extends StatefulWidget {
 }
 
 class _ContentWebviewPageState extends State<ContentWebviewPage> {
-  final LoginService _loginService = LoginService();
+  final AuthRepository _loginService = AuthRepository();
   late final WebViewController _controller;
   bool _isLoading = true;
   bool _isVideo = false;
@@ -76,9 +77,7 @@ class _ContentWebviewPageState extends State<ContentWebviewPage> {
   }
 
   String _normalizeUrl(String url) {
-    if (url.startsWith('http')) return url;
-    if (url.startsWith('/')) return 'https://eduapi.uztelecom.uz$url';
-    return 'https://eduapi.uztelecom.uz/$url';
+    return AppConfig.absoluteUrl(url) ?? url;
   }
 
   bool _looksLikeVideo(String value) {
@@ -140,10 +139,7 @@ class _ContentWebviewPageState extends State<ContentWebviewPage> {
     if (!mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => _ContentVideoPage(
-          url: normalized,
-          title: widget.title,
-        ),
+        builder: (_) => _ContentVideoPage(url: normalized, title: widget.title),
       ),
     );
   }
@@ -210,9 +206,7 @@ class _ContentWebviewPageState extends State<ContentWebviewPage> {
                       child: ElevatedButton.icon(
                         onPressed: () => _openVideoPlayer(_normalizedFallback!),
                         icon: const Icon(Icons.play_circle_fill_rounded),
-                        label: Text(
-                          _isLoading ? 'Video' : 'Videoni ko‘rish',
-                        ),
+                        label: Text(_isLoading ? 'Video' : 'Videoni ko‘rish'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF2F80FF),
                           foregroundColor: Colors.white,
@@ -233,9 +227,7 @@ class _ContentWebviewPageState extends State<ContentWebviewPage> {
       children: [
         WebViewWidget(controller: _controller),
         if (_isLoading)
-          Center(
-            child: CircularProgressIndicator(color: scheme.primary),
-          ),
+          Center(child: CircularProgressIndicator(color: scheme.primary)),
       ],
     );
   }
@@ -244,9 +236,7 @@ class _ContentWebviewPageState extends State<ContentWebviewPage> {
     final scheme = Theme.of(context).colorScheme;
     final controller = _videoController;
     if (controller == null) {
-      return Center(
-        child: CircularProgressIndicator(color: scheme.primary),
-      );
+      return Center(child: CircularProgressIndicator(color: scheme.primary));
     }
 
     return SingleChildScrollView(
@@ -262,8 +252,9 @@ class _ContentWebviewPageState extends State<ContentWebviewPage> {
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: AspectRatio(
-              aspectRatio:
-                  controller.value.isInitialized ? controller.value.aspectRatio : 16 / 9,
+              aspectRatio: controller.value.isInitialized
+                  ? controller.value.aspectRatio
+                  : 16 / 9,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
@@ -368,11 +359,7 @@ class _VideoControls extends StatelessWidget {
                 style: const TextStyle(color: Color(0x992F80FF), fontSize: 11),
               ),
               const SizedBox(width: 6),
-              const Icon(
-                Icons.volume_up,
-                color: Color(0xFF2F80FF),
-                size: 18,
-              ),
+              const Icon(Icons.volume_up, color: Color(0xFF2F80FF), size: 18),
               const SizedBox(width: 6),
               if (onFullscreen != null)
                 InkWell(
@@ -465,7 +452,7 @@ class _ContentVideoPage extends StatefulWidget {
 }
 
 class _ContentVideoPageState extends State<_ContentVideoPage> {
-  final LoginService _loginService = LoginService();
+  final AuthRepository _loginService = AuthRepository();
   VideoPlayerController? _controller;
   String? _videoError;
 
@@ -545,10 +532,9 @@ class _ContentVideoPageState extends State<_ContentVideoPage> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: AspectRatio(
-            aspectRatio:
-                controller?.value.isInitialized == true
-                    ? controller!.value.aspectRatio
-                    : 16 / 9,
+            aspectRatio: controller?.value.isInitialized == true
+                ? controller!.value.aspectRatio
+                : 16 / 9,
             child: Stack(
               alignment: Alignment.center,
               children: [

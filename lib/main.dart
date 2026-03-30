@@ -2,22 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:uztelecom/core/config/app_config.dart';
+import 'package:uztelecom/core/routing/app_router.dart';
+import 'package:uztelecom/core/theme/app_theme.dart';
 import 'package:uztelecom/domain/provider/provider.dart';
-import 'package:uztelecom/domain/services/cache_service.dart';
-import 'package:uztelecom/ui/routes/app_navigator.dart';
-import 'package:uztelecom/ui/theme/app_theme.dart';
+import 'package:uztelecom/data/datasources/local/cache_local_data_source.dart';
+import 'package:uztelecom/core/theme/app_colors.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AppConfig.load();
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(statusBarColor: Colors.black),
+    const SystemUiOverlayStyle(statusBarColor: AppColors.black),
   );
   final themeProvider = ThemeModeProvider();
   await themeProvider.loadThemeMode();
   final localeProvider = LocaleProvider();
   await localeProvider.loadLocale();
-  await CacheService.clearOnStartup();
+  await CacheLocalDataSource.clearOnStartup();
 
   runApp(
     MultiProvider(
@@ -50,8 +53,8 @@ class MyApp extends StatelessWidget {
             GlobalCupertinoLocalizations.delegate,
           ],
           debugShowCheckedModeBanner: false,
-          initialRoute: AppNavigator.initRoute,
-          routes: AppNavigator.routes,
+          initialRoute: AppRouter.initialRoute,
+          onGenerateRoute: AppRouter.onGenerateRoute,
         );
       },
     );

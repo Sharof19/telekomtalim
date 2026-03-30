@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:uztelecom/core/config/app_config.dart';
 import 'package:uztelecom/ui/pages/no_internet_page.dart';
 
 class ConnectivityGate extends StatefulWidget {
@@ -18,7 +19,7 @@ class _ConnectivityGateState extends State<ConnectivityGate> {
   bool _checking = false;
   bool _offlineRouteOpen = false;
   StreamSubscription<dynamic>? _connectivitySub;
-  static final Uri _probeUri = Uri.parse('https://eduapi.uztelecom.uz/');
+  static final Uri _probeUri = AppConfig.connectivityProbeUri;
 
   @override
   void initState() {
@@ -68,8 +69,9 @@ class _ConnectivityGateState extends State<ConnectivityGate> {
   Future<bool> _canReachBackend() async {
     final client = http.Client();
     try {
-      final response =
-          await client.head(_probeUri).timeout(const Duration(seconds: 4));
+      final response = await client
+          .head(_probeUri)
+          .timeout(const Duration(seconds: 4));
       return response.statusCode > 0;
     } catch (_) {
       return false;
@@ -84,9 +86,7 @@ class _ConnectivityGateState extends State<ConnectivityGate> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => NoInternetPage(onRetry: _check),
-        ),
+        MaterialPageRoute(builder: (_) => NoInternetPage(onRetry: _check)),
       );
     });
   }

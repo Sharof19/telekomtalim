@@ -1,27 +1,25 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:uztelecom/domain/services/login_service.dart';
+import 'package:uztelecom/core/config/app_endpoints.dart';
+import 'package:uztelecom/data/repositories/auth_repository.dart';
 
-class ScheduleService {
-  ScheduleService({http.Client? client, LoginService? authService})
-      : _client = client ?? http.Client(),
-        _authService = authService ?? LoginService();
+class ScheduleRepository {
+  ScheduleRepository({http.Client? client, AuthRepository? authService})
+    : _client = client ?? http.Client(),
+      _authService = authService ?? AuthRepository();
 
   final http.Client _client;
-  final LoginService _authService;
-
-  static const String _baseUrl =
-      'https://eduapi.uztelecom.uz/api/v1/listener/schedule/';
+  final AuthRepository _authService;
 
   Future<ScheduleData> fetchSchedule({
     required String startDate,
     required String endDate,
   }) async {
-    final uri = Uri.parse(_baseUrl).replace(queryParameters: {
-      'start_date': startDate,
-      'end_date': endDate,
-    });
+    final uri = AppEndpoints.listenerSchedule(
+      startDate: startDate,
+      endDate: endDate,
+    );
 
     final response = await _authService.authorizedRequest(
       request: (token) => _client.get(

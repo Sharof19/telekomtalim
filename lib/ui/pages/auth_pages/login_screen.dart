@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:uztelecom/domain/services/login_service.dart';
+import 'package:uztelecom/data/repositories/auth_repository.dart';
 import 'package:uztelecom/ui/l10n/tr.dart';
-import 'package:uztelecom/ui/routes/app_routes.dart';
-import 'package:uztelecom/ui/theme/home_palette.dart';
+import 'package:uztelecom/core/routing/app_navigator.dart';
+import 'package:uztelecom/core/theme/app_colors.dart';
 import 'package:uztelecom/ui/widgets/status_banner.dart';
 
 class LoginPage extends StatefulWidget {
@@ -17,7 +17,7 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
-  final LoginService _loginService = LoginService();
+  final AuthRepository _loginService = AuthRepository();
   bool _autoValidate = false;
   bool _obscurePassword = true;
   bool _isLoading = false;
@@ -52,8 +52,7 @@ class _LoginPageState extends State<LoginPage> {
     try {
       await _loginService.requestLogin(login: login, password: password);
       if (!mounted) return;
-      Navigator.of(context)
-          .pushReplacementNamed(AppRoutes.otpPage, arguments: login);
+      AppNavigator.replaceWithOtp(context, login: login);
     } catch (e) {
       if (!mounted) return;
       await StatusBanner.show(
@@ -70,7 +69,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _skip() {
-    Navigator.of(context).pushReplacementNamed(AppRoutes.homePage);
+    AppNavigator.replaceWithHome(context);
   }
 
   String _normalizeLogin(String value) {
@@ -88,20 +87,18 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     final lightTheme = ThemeData.light().copyWith(
       colorScheme: const ColorScheme.light(
-        primary: HomePalette.brandBlue,
-        secondary: HomePalette.brandBlue,
-        background: Colors.white,
-        surface: Colors.white,
-        onPrimary: Colors.white,
-        onSecondary: Colors.white,
-        onBackground: Colors.black87,
+        primary: AppColors.brandBlue,
+        secondary: AppColors.brandBlue,
+        surface: AppColors.white,
+        onPrimary: AppColors.white,
+        onSecondary: AppColors.white,
         onSurface: Colors.black87,
       ),
-      iconTheme: const IconThemeData(color: HomePalette.brandBlue),
+      iconTheme: const IconThemeData(color: AppColors.brandBlue),
       textSelectionTheme: const TextSelectionThemeData(
-        cursorColor: HomePalette.brandBlue,
+        cursorColor: AppColors.brandBlue,
         selectionColor: Color(0x33396495),
-        selectionHandleColor: HomePalette.brandBlue,
+        selectionHandleColor: AppColors.brandBlue,
       ),
     );
     return Theme(
@@ -109,10 +106,10 @@ class _LoginPageState extends State<LoginPage> {
       child: Builder(
         builder: (context) {
           final scheme = Theme.of(context).colorScheme;
-          final textPrimary = scheme.onBackground;
-          final textMuted = scheme.onBackground.withOpacity(0.6);
+          final textPrimary = scheme.onSurface;
+          final textMuted = scheme.onSurface.withValues(alpha: 0.6);
           return Scaffold(
-            backgroundColor: Colors.white,
+            backgroundColor: AppColors.authBackground,
             body: GestureDetector(
               onTap: () => FocusScope.of(context).unfocus(),
               child: Stack(
@@ -122,7 +119,7 @@ class _LoginPageState extends State<LoginPage> {
                     right: -120,
                     child: _BackdropCircle(
                       size: 260,
-                      color: HomePalette.primary.withOpacity(0.12),
+                      color: AppColors.brandBlue.withValues(alpha: 0.12),
                     ),
                   ),
                   Positioned(
@@ -130,18 +127,25 @@ class _LoginPageState extends State<LoginPage> {
                     left: -100,
                     child: _BackdropCircle(
                       size: 220,
-                      color: HomePalette.primary.withOpacity(0.08),
+                      color: AppColors.brandBlue.withValues(alpha: 0.08),
                     ),
                   ),
                   SafeArea(
                     child: LayoutBuilder(
                       builder: (context, constraints) {
-                        final keyboard = MediaQuery.of(context).viewInsets.bottom;
+                        final keyboard = MediaQuery.of(
+                          context,
+                        ).viewInsets.bottom;
                         final isKeyboardOpen = keyboard > 0;
                         return AnimatedPadding(
                           duration: const Duration(milliseconds: 180),
                           curve: Curves.easeOut,
-                          padding: EdgeInsets.fromLTRB(20, 0, 20, 16 + keyboard),
+                          padding: EdgeInsets.fromLTRB(
+                            20,
+                            0,
+                            20,
+                            16 + keyboard,
+                          ),
                           child: SingleChildScrollView(
                             child: ConstrainedBox(
                               constraints: BoxConstraints(
@@ -153,7 +157,10 @@ class _LoginPageState extends State<LoginPage> {
                                   children: [
                                     if (!isKeyboardOpen)
                                       Padding(
-                                        padding: const EdgeInsets.only(top: 8, bottom: 8),
+                                        padding: const EdgeInsets.only(
+                                          top: 8,
+                                          bottom: 8,
+                                        ),
                                         child: Align(
                                           alignment: Alignment.topLeft,
                                           child: Image.asset(
@@ -174,7 +181,7 @@ class _LoginPageState extends State<LoginPage> {
                                       ),
                                     ),
                                     SizedBox(height: isKeyboardOpen ? 2 : 6),
-                              SizedBox(height: isKeyboardOpen ? 10 : 24),
+                                    SizedBox(height: isKeyboardOpen ? 10 : 24),
                                     _buildFormCard(context),
                                     const SizedBox(height: 10),
                                     if (!isKeyboardOpen)
@@ -183,7 +190,11 @@ class _LoginPageState extends State<LoginPage> {
                                         child: TextButton(
                                           onPressed: _skip,
                                           child: Text(
-                                            tr(context, uz: 'Keyinroq', ru: 'Позже'),
+                                            tr(
+                                              context,
+                                              uz: 'Keyinroq',
+                                              ru: 'Позже',
+                                            ),
                                             style: TextStyle(
                                               color: textMuted,
                                               fontWeight: FontWeight.w600,
@@ -212,7 +223,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildFormCard(BuildContext context) {
     final cardBg = Colors.white;
-    final shadowColor = Colors.black.withOpacity(0.08);
+    final shadowColor = Colors.black.withValues(alpha: 0.08);
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
       decoration: BoxDecoration(
@@ -249,7 +260,7 @@ class _LoginPageState extends State<LoginPage> {
                 icon: Icons.phone_iphone,
                 prefixText: '+998 ',
               ),
-              cursorColor: HomePalette.brandBlue,
+              cursorColor: AppColors.brandBlue,
               validator: (value) {
                 final digits = (value ?? '').replaceAll(RegExp(r'\D'), '');
                 if (digits.isEmpty) {
@@ -278,7 +289,11 @@ class _LoginPageState extends State<LoginPage> {
               decoration: _inputDecoration(
                 context: context,
                 label: tr(context, uz: 'Parol', ru: 'Пароль'),
-                hint: tr(context, uz: 'Parolingizni kiriting', ru: 'Введите пароль'),
+                hint: tr(
+                  context,
+                  uz: 'Parolingizni kiriting',
+                  ru: 'Введите пароль',
+                ),
                 icon: Icons.key_rounded,
                 suffixIcon: IconButton(
                   onPressed: () {
@@ -293,11 +308,15 @@ class _LoginPageState extends State<LoginPage> {
               validator: (value) {
                 final trimmed = value?.trim() ?? '';
                 if (trimmed.isEmpty) {
-                  return tr(context, uz: 'Parol kiriting.', ru: 'Введите пароль.');
+                  return tr(
+                    context,
+                    uz: 'Parol kiriting.',
+                    ru: 'Введите пароль.',
+                  );
                 }
                 return null;
               },
-              cursorColor: HomePalette.brandBlue,
+              cursorColor: AppColors.brandBlue,
               onFieldSubmitted: (_) => _submit(),
             ),
             const SizedBox(height: 10),
@@ -306,12 +325,15 @@ class _LoginPageState extends State<LoginPage> {
               child: TextButton(
                 onPressed: () {},
                 child: Text(
-                  tr(context, uz: 'Parolni unutdingizmi?', ru: 'Забыли пароль?'),
+                  tr(
+                    context,
+                    uz: 'Parolni unutdingizmi?',
+                    ru: 'Забыли пароль?',
+                  ),
                   style: TextStyle(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onBackground
-                        .withOpacity(0.6),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -364,28 +386,24 @@ class _LoginPageState extends State<LoginPage> {
     Widget? suffixIcon,
   }) {
     final scheme = Theme.of(context).colorScheme;
-    final borderColor = HomePalette.border;
+    final borderColor = AppColors.authBorder;
     final fillColor = Colors.white;
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(
-        color: scheme.onBackground.withOpacity(0.75),
-      ),
-      floatingLabelStyle: const TextStyle(
-        color: HomePalette.brandBlue,
-      ),
+      labelStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.75)),
+      floatingLabelStyle: const TextStyle(color: AppColors.brandBlue),
       hintText: hint,
       hintStyle: TextStyle(
         fontSize: 16,
-        color: scheme.onBackground.withOpacity(0.5),
+        color: scheme.onSurface.withValues(alpha: 0.5),
       ),
       prefixText: prefixText,
       prefixStyle: TextStyle(
         fontSize: 16,
-        color: scheme.onBackground,
+        color: scheme.onSurface,
         fontWeight: FontWeight.w600,
       ),
-      prefixIcon: Icon(icon, color: HomePalette.brandBlue),
+      prefixIcon: Icon(icon, color: AppColors.brandBlue),
       suffixIcon: suffixIcon,
       filled: true,
       fillColor: fillColor,
@@ -400,22 +418,16 @@ class _LoginPageState extends State<LoginPage> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(
-          color: HomePalette.brandBlue,
-          width: 1.4,
-        ),
+        borderSide: const BorderSide(color: AppColors.brandBlue, width: 1.4),
       ),
-      focusColor: HomePalette.brandBlue,
-      hoverColor: HomePalette.brandBlue,
-      prefixIconColor: HomePalette.brandBlue,
-      suffixIconColor: HomePalette.brandBlue,
-      iconColor: HomePalette.brandBlue,
+      focusColor: AppColors.brandBlue,
+      hoverColor: AppColors.brandBlue,
+      prefixIconColor: AppColors.brandBlue,
+      suffixIconColor: AppColors.brandBlue,
+      iconColor: AppColors.brandBlue,
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(
-          color: HomePalette.brandBlue,
-          width: 1.4,
-        ),
+        borderSide: const BorderSide(color: AppColors.brandBlue, width: 1.4),
       ),
     );
   }
@@ -432,22 +444,16 @@ class _BackdropCircle extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color,
-      ),
+      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
     );
   }
 }
 
 class _PhoneNumberFormatter extends TextInputFormatter {
   final int maxDigits;
-  final List<int> groups;
+  static const List<int> _groups = [2, 3, 2, 2];
 
-  const _PhoneNumberFormatter({
-    required this.maxDigits,
-    this.groups = const [2, 3, 2, 2],
-  });
+  const _PhoneNumberFormatter({required this.maxDigits});
 
   @override
   TextEditingValue formatEditUpdate(
@@ -459,8 +465,9 @@ class _PhoneNumberFormatter extends TextInputFormatter {
         ? digitsOnly.substring(0, maxDigits)
         : digitsOnly;
     final formatted = _formatGroups(limited);
-    final digitsBeforeCursor =
-        _countDigits(newValue.text.substring(0, newValue.selection.end));
+    final digitsBeforeCursor = _countDigits(
+      newValue.text.substring(0, newValue.selection.end),
+    );
     final selectionIndex = _selectionIndex(formatted, digitsBeforeCursor);
     return TextEditingValue(
       text: formatted,
@@ -472,7 +479,7 @@ class _PhoneNumberFormatter extends TextInputFormatter {
   String _formatGroups(String digits) {
     final buffer = StringBuffer();
     var index = 0;
-    for (final size in groups) {
+    for (final size in _groups) {
       if (index >= digits.length) break;
       final end = (index + size).clamp(0, digits.length);
       if (buffer.isNotEmpty) {

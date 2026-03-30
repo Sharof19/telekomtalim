@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:uztelecom/domain/services/courses_service.dart';
-import 'package:uztelecom/domain/services/my_courses_service.dart';
+import 'package:uztelecom/core/config/app_config.dart';
+import 'package:uztelecom/data/repositories/courses_repository.dart';
+import 'package:uztelecom/data/repositories/my_courses_repository.dart';
 import 'package:uztelecom/ui/l10n/tr.dart';
-import 'package:uztelecom/ui/pages/darslar_page.dart';
 import 'package:uztelecom/ui/pages/no_internet_page.dart';
-import 'package:uztelecom/ui/pages/notifications_page.dart';
+import 'package:uztelecom/core/routing/app_navigator.dart';
 import 'package:uztelecom/ui/utils/network_error.dart';
-import 'package:uztelecom/ui/widgets/connectivity_gate.dart';
 
 class MyCoursesPage extends StatefulWidget {
   final bool embedded;
@@ -18,7 +17,7 @@ class MyCoursesPage extends StatefulWidget {
 }
 
 class _MyCoursesPageState extends State<MyCoursesPage> {
-  final MyCoursesService _service = MyCoursesService();
+  final MyCoursesRepository _service = MyCoursesRepository();
   late Future<List<MyCourseItem>> _future;
   bool _offlinePushed = false;
 
@@ -58,11 +57,7 @@ class _MyCoursesPageState extends State<MyCoursesPage> {
   }
 
   void _openNotifications() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const ConnectivityGate(child: NotificationsPage()),
-      ),
-    );
+    AppNavigator.pushNotifications(context);
   }
 
   @override
@@ -162,10 +157,7 @@ class _MyCourseCard extends StatelessWidget {
   const _MyCourseCard({required this.item});
 
   String? _absoluteUrl(String? path) {
-    if (path == null || path.isEmpty) return null;
-    if (path.startsWith('http')) return path;
-    if (path.startsWith('/')) return 'https://eduapi.uztelecom.uz$path';
-    return 'https://eduapi.uztelecom.uz/$path';
+    return AppConfig.absoluteUrl(path);
   }
 
   String? _durationLabel(BuildContext context) {
@@ -250,16 +242,11 @@ class _MyCourseCard extends StatelessWidget {
 
     return InkWell(
       onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => ConnectivityGate(
-              child: CourseInfoPage(
-                courseId: item.id,
-                initialItem: _toCourseItem(item),
-                useMyCoursesDetailApi: true,
-              ),
-            ),
-          ),
+        AppNavigator.pushCourseInfo(
+          context,
+          courseId: item.id,
+          initialItem: _toCourseItem(item),
+          useMyCoursesDetailApi: true,
         );
       },
       borderRadius: BorderRadius.circular(18),

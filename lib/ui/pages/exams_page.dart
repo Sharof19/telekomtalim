@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:uztelecom/domain/services/exams_service.dart';
+import 'package:uztelecom/data/repositories/exams_repository.dart';
 import 'package:uztelecom/ui/l10n/tr.dart';
-import 'package:uztelecom/ui/pages/exam_attempts_page.dart';
-import 'package:uztelecom/ui/pages/exam_session_page.dart';
 import 'package:uztelecom/ui/pages/no_internet_page.dart';
-import 'package:uztelecom/ui/pages/notifications_page.dart';
+import 'package:uztelecom/core/routing/app_navigator.dart';
 import 'package:uztelecom/ui/utils/network_error.dart';
-import 'package:uztelecom/ui/widgets/connectivity_gate.dart';
 
 class ExamsPage extends StatefulWidget {
   const ExamsPage({super.key});
@@ -16,7 +13,7 @@ class ExamsPage extends StatefulWidget {
 }
 
 class _ExamsPageState extends State<ExamsPage> {
-  final ExamsService _examsService = ExamsService();
+  final ExamsRepository _examsService = ExamsRepository();
   late Future<ExamsResult> _future;
   final Set<int> _starting = {};
   bool _offlinePushed = false;
@@ -78,14 +75,11 @@ class _ExamsPageState extends State<ExamsPage> {
         ).showSnackBar(SnackBar(content: Text(message)));
         return;
       }
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => ExamSessionPage(
-            examId: item.examId,
-            session: session,
-            title: item.name,
-          ),
-        ),
+      await AppNavigator.pushExamSession<bool>(
+        context,
+        examId: item.examId,
+        session: session,
+        title: item.name,
       );
       if (mounted) {
         _reload();
@@ -122,20 +116,15 @@ class _ExamsPageState extends State<ExamsPage> {
   }
 
   Future<void> _openAttempts(ExamItem item) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) =>
-            ExamAttemptsPage(examId: item.examId, examTitle: item.name),
-      ),
+    await AppNavigator.pushExamAttempts<void>(
+      context,
+      examId: item.examId,
+      examTitle: item.name,
     );
   }
 
   void _openNotifications() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const ConnectivityGate(child: NotificationsPage()),
-      ),
-    );
+    AppNavigator.pushNotifications(context);
   }
 
   @override

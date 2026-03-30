@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uztelecom/domain/services/profile_service.dart';
+import 'package:uztelecom/data/repositories/profile_repository.dart';
 import 'package:uztelecom/ui/l10n/tr.dart';
 import 'package:uztelecom/ui/pages/settings_pages/settings_page.dart';
 
@@ -50,7 +50,7 @@ class _ProfileHeader extends StatefulWidget {
 
 class _ProfileHeaderState extends State<_ProfileHeader> {
   static const String _avatarPrefsKey = 'profile_avatar_path';
-  final ProfileService _service = ProfileService();
+  final ProfileRepository _service = ProfileRepository();
   final ImagePicker _imagePicker = ImagePicker();
   late Future<ProfileInfo> _future;
   String? _avatarPath;

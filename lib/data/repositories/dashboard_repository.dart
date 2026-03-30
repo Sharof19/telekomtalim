@@ -1,29 +1,23 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:uztelecom/domain/services/login_service.dart';
+import 'package:uztelecom/core/config/app_endpoints.dart';
+import 'package:uztelecom/data/repositories/auth_repository.dart';
 
-class DashboardService {
-  DashboardService({http.Client? client, LoginService? authService})
+class DashboardRepository {
+  DashboardRepository({http.Client? client, AuthRepository? authService})
     : _client = client ?? http.Client(),
-      _authService = authService ?? LoginService();
+      _authService = authService ?? AuthRepository();
 
   final http.Client _client;
-  final LoginService _authService;
-
-  static const _progressUrl =
-      'https://eduapi.uztelecom.uz/api/v1/dashboard/progress/';
-  static const _summaryUrl =
-      'https://eduapi.uztelecom.uz/api/v1/dashboard/summary/';
-  static const _timeStatsUrl =
-      'https://eduapi.uztelecom.uz/api/v1/dashboard/time-stats/';
+  final AuthRepository _authService;
 
   Future<DashboardProgress> fetchProgress({required int courseId}) async {
     final response = await _authService.authorizedRequest(
       request: (token) => _client.get(
-        Uri.parse(
-          _progressUrl,
-        ).replace(queryParameters: {'course_id': '$courseId'}),
+        AppEndpoints.dashboardProgress().replace(
+          queryParameters: {'course_id': '$courseId'},
+        ),
         headers: {
           'accept': 'application/json',
           'Authorization': 'Bearer $token',
@@ -50,7 +44,7 @@ class DashboardService {
   }) async {
     final response = await _authService.authorizedRequest(
       request: (token) => _client.get(
-        Uri.parse(_summaryUrl).replace(
+        AppEndpoints.dashboardSummary().replace(
           queryParameters: {
             'start_date': _fmtDate(startDate),
             'end_date': _fmtDate(endDate),
@@ -83,7 +77,7 @@ class DashboardService {
   }) async {
     final response = await _authService.authorizedRequest(
       request: (token) => _client.get(
-        Uri.parse(_timeStatsUrl).replace(
+        AppEndpoints.dashboardTimeStats().replace(
           queryParameters: {
             'start_date': _fmtDate(startDate),
             'end_date': _fmtDate(endDate),

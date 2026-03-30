@@ -3,15 +3,9 @@ import 'package:iconsax/iconsax.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uztelecom/domain/provider/provider.dart';
-import 'package:uztelecom/domain/services/login_service.dart';
+import 'package:uztelecom/data/repositories/auth_repository.dart';
 import 'package:uztelecom/ui/l10n/tr.dart';
-import 'package:uztelecom/ui/pages/certificates_page.dart';
-import 'package:uztelecom/ui/pages/my_courses_page.dart';
-import 'package:uztelecom/ui/pages/settings_pages/language_page.dart';
-import 'package:uztelecom/ui/pages/settings_pages/profile_info_page.dart';
-import 'package:uztelecom/ui/pages/settings_pages/support_page.dart';
-import 'package:uztelecom/ui/routes/app_routes.dart';
-import 'package:uztelecom/ui/widgets/connectivity_gate.dart';
+import 'package:uztelecom/core/routing/app_navigator.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -56,7 +50,7 @@ class SettingsSections extends StatefulWidget {
 }
 
 class _SettingsSectionsState extends State<SettingsSections> {
-  final LoginService _loginService = LoginService();
+  final AuthRepository _loginService = AuthRepository();
   bool _loggingOut = false;
 
   @override
@@ -76,9 +70,7 @@ class _SettingsSectionsState extends State<SettingsSections> {
     await prefs.clear();
 
     if (!mounted) return;
-    Navigator.of(
-      context,
-    ).pushNamedAndRemoveUntil(AppRoutes.splashScreen, (route) => false);
+    await AppNavigator.resetToSplash(context);
   }
 
   @override
@@ -110,12 +102,7 @@ class _SettingsSectionsState extends State<SettingsSections> {
             dividerColor: divider,
             iconColor: tileIconColor,
             onTap: () async {
-              await Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) =>
-                      const ConnectivityGate(child: ProfileInfoPage()),
-                ),
-              );
+              await AppNavigator.pushProfileInfo(context);
             },
           ),
           _SettingsTile(
@@ -125,12 +112,7 @@ class _SettingsSectionsState extends State<SettingsSections> {
             dividerColor: divider,
             iconColor: tileIconColor,
             onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) =>
-                      const ConnectivityGate(child: MyCoursesPage()),
-                ),
-              );
+              AppNavigator.pushMyCourses(context);
             },
           ),
           _SettingsTile(
@@ -141,12 +123,7 @@ class _SettingsSectionsState extends State<SettingsSections> {
             dividerColor: divider,
             iconColor: tileIconColor,
             onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) =>
-                      const ConnectivityGate(child: CertificatesPage()),
-                ),
-              );
+              AppNavigator.pushCertificates(context);
             },
           ),
         ],
@@ -168,11 +145,7 @@ class _SettingsSectionsState extends State<SettingsSections> {
             dividerColor: divider,
             iconColor: tileIconColor,
             onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const ConnectivityGate(child: LanguagePage()),
-                ),
-              );
+              AppNavigator.pushLanguage(context);
             },
           ),
           _SettingsSwitchTile(
@@ -207,9 +180,7 @@ class _SettingsSectionsState extends State<SettingsSections> {
             dividerColor: divider,
             iconColor: tileIconColor,
             onTap: () {
-              Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const SupportPage()));
+              AppNavigator.pushSupport(context);
             },
           ),
           _SettingsTile(
@@ -273,7 +244,7 @@ class _GroupCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: (shadowColor ?? Colors.black).withOpacity(0.04),
+            color: (shadowColor ?? Colors.black).withValues(alpha: 0.04),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -305,7 +276,7 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final chevronColor = textColor.withOpacity(0.5);
+    final chevronColor = textColor.withValues(alpha: 0.5);
     return Column(
       children: [
         ListTile(
@@ -374,7 +345,7 @@ class _SettingsSwitchTile extends StatelessWidget {
           ),
           trailing: Switch(
             value: value,
-            activeColor: activeColor,
+            activeThumbColor: activeColor,
             activeTrackColor: activeTrackColor,
             onChanged: onChanged,
           ),

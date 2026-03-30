@@ -1,9 +1,7 @@
-import 'dart:io';
-
 import 'package:flutter/painting.dart';
 import 'package:path_provider/path_provider.dart';
 
-class CacheService {
+class CacheLocalDataSource {
   static Future<void> clearOnStartup() async {
     try {
       final tempDir = await getTemporaryDirectory();
