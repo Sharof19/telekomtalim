@@ -1,55 +1,48 @@
-import 'dart:convert';
-
 import 'package:http/http.dart' as http;
-import 'package:uztelecom/core/config/app_endpoints.dart';
+import 'package:uztelecom/data/datasources/remote/api_client.dart';
+import 'package:uztelecom/data/datasources/remote/bbb_remote_data_source.dart';
 import 'package:uztelecom/data/repositories/auth_repository.dart';
 
 class BbbRepository {
-  BbbRepository({http.Client? client, AuthRepository? authService})
-    : _client = client ?? http.Client(),
-      _authService = authService ?? AuthRepository();
+  factory BbbRepository({
+    http.Client? client,
+    AuthRepository? authService,
+    ApiClient? apiClient,
+    bool? ownsClient,
+  }) {
+    final resolvedClient = client ?? http.Client();
+    final resolvedAuthService =
+        authService ?? AuthRepository(client: resolvedClient);
+    return BbbRepository._(
+      client: resolvedClient,
+      ownsClient: ownsClient ?? client == null,
+      apiClient:
+          apiClient ??
+          ApiClient(
+            client: resolvedClient,
+            authorizedRequest: resolvedAuthService.authorizedRequest,
+          ),
+    );
+  }
+
+  BbbRepository._({
+    required http.Client client,
+    required bool ownsClient,
+    required ApiClient apiClient,
+  }) : _client = client,
+       _ownsClient = ownsClient,
+       _remote = BbbRemoteDataSource(apiClient: apiClient);
 
   final http.Client _client;
-  final AuthRepository _authService;
+  final bool _ownsClient;
+  final BbbRemoteDataSource _remote;
 
-  Future<String?> joinPublicMeeting(String meetingId) async {
-    final uri = AppEndpoints.bbbJoin(meetingId);
-    final response = await _authService.authorizedRequest(
-      request: (token) => _client.post(
-        uri,
-        headers: {
-          'accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      ),
-    );
-
-    if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception('Mitingga kirishda xatolik.');
-    }
-
-    return _extractJoinUrl(response.body);
-  }
-
-  String? _extractJoinUrl(String body) {
-    try {
-      final json = jsonDecode(body);
-      if (json is Map<String, dynamic>) {
-        final data = json['data'];
-        if (data is Map<String, dynamic>) {
-          return data['join_url']?.toString() ??
-              data['url']?.toString() ??
-              data['meeting_url']?.toString();
-        }
-        return json['join_url']?.toString() ??
-            json['url']?.toString() ??
-            json['meeting_url']?.toString();
-      }
-    } catch (_) {}
-    return null;
-  }
+  Future<String?> joinPublicMeeting(String meetingId) =>
+      _remote.joinPublicMeeting(meetingId);
 
   void dispose() {
-    _client.close();
+    if (_ownsClient) {
+      _client.close();
+    }
   }
 }

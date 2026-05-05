@@ -1,79 +1,89 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uztelecom/core/config/app_endpoints.dart';
+import 'package:uztelecom/core/errors/app_failure.dart';
+import 'package:uztelecom/core/utils/app_logger.dart';
+import 'package:uztelecom/data/datasources/local/auth_local_data_source.dart';
+import 'package:uztelecom/data/datasources/remote/api_client.dart';
+import 'package:uztelecom/data/datasources/remote/auth_remote_data_source.dart';
 
 class AuthRepository {
-  AuthRepository({http.Client? client}) : _client = client ?? http.Client();
+  AuthRepository({http.Client? client, ApiClient? apiClient, bool? ownsClient})
+    : _client = client ?? http.Client(),
+      _ownsClient = ownsClient ?? client == null,
+      _local = AuthLocalDataSource() {
+    _remote = AuthRemoteDataSource(
+      client: _client,
+      apiClient: apiClient ?? ApiClient(client: _client),
+    );
+  }
 
   final http.Client _client;
+  final bool _ownsClient;
+  final AuthLocalDataSource _local;
+  late final AuthRemoteDataSource _remote;
   static Future<String?>? _ongoingRefresh;
-
-  static const _accessKey = 'auth_access_token';
-  static const _refreshKey = 'auth_refresh_token';
-  static const _expiryKey = 'auth_access_token_expiry';
   static const _authErrorCodes = {401, 403, 498};
 
   Future<void> requestLogin({
     required String login,
     required String password,
+  }) => _remote.requestLogin(login: login, password: password);
+
+  Future<OAuthAuthorizeData> createOauthAuthorizeUrl({
+    required String redirectUri,
+  }) {
+    return _remote.createOauthAuthorizeUrl(redirectUri: redirectUri);
+  }
+
+  Future<void> exchangeOauthCallback({
+    required String code,
+    required String redirectUri,
+    required String state,
   }) async {
-    final response = await _client.post(
-      AppEndpoints.login(),
-      headers: const {
-        'accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({'login': login, 'password': password}),
+    final body = await _remote.exchangeOauthCallback(
+      code: code,
+      redirectUri: redirectUri,
+      state: state,
     );
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return;
-    }
-
-    throw Exception(_extractMessage(response.body) ?? 'Login xatosi.');
+    await _handleAuthResponse(body);
   }
 
   Future<void> verifyCode({required String login, required String code}) async {
-    final response = await _client.post(
-      AppEndpoints.verifyCode(),
-      headers: const {
-        'accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({'login': login, 'code': code}),
-    );
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      await _handleAuthResponse(response.body);
-      return;
-    }
-
-    throw Exception(_extractMessage(response.body) ?? 'Kod tasdiqlanmadi.');
+    final body = await _remote.verifyCode(login: login, code: code);
+    await _handleAuthResponse(body);
   }
 
-  Future<void> resendCode({required String login}) async {
-    final response = await _client.post(
-      AppEndpoints.resendCode(),
-      headers: const {
-        'accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({'login': login}),
+  Future<void> resendCode({required String login}) =>
+      _remote.resendCode(login: login);
+
+  Future<void> forgotPassword({required String phone}) {
+    return _remote.forgotPassword(phone: phone);
+  }
+
+  Future<void> createPassword({
+    required String newPassword,
+    required String confirmPassword,
+  }) {
+    return _remote.createPassword(
+      newPassword: newPassword,
+      confirmPassword: confirmPassword,
     );
+  }
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return;
-    }
-
-    throw Exception(_extractMessage(response.body) ?? 'Kod yuborilmadi.');
+  Future<void> changePassword({
+    required String newPassword,
+    required String confirmPassword,
+  }) {
+    return _remote.changePassword(
+      newPassword: newPassword,
+      confirmPassword: confirmPassword,
+    );
   }
 
   Future<String?> getValidAccessToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    final access = prefs.getString(_accessKey);
-    final expiry = prefs.getInt(_expiryKey);
+    final access = await _local.getAccessToken();
+    final expiry = await _local.getAccessTokenExpiry();
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
     if (access != null && expiry != null && expiry - now > 60) {
@@ -89,7 +99,7 @@ class AuthRepository {
   }) async {
     final token = await getValidAccessToken();
     if (token == null) {
-      throw Exception('Token topilmadi. Iltimos, qayta kiring.');
+      throw const AuthFailure('Token topilmadi. Iltimos, qayta kiring.');
     }
 
     var response = await request(token);
@@ -101,10 +111,15 @@ class AuthRepository {
         final refreshed = await _refreshAccessToken();
         if (refreshed == null || refreshed.isEmpty) {
           await _clearTokens();
-          throw Exception('Token eskirgan. Iltimos, qayta kiring.');
+          throw const AuthFailure('Token eskirgan. Iltimos, qayta kiring.');
         }
         response = await request(refreshed);
-      } catch (_) {
+      } catch (error, stackTrace) {
+        AppLogger.warning(
+          'Authorized request refresh failed; clearing auth tokens.',
+          error: error,
+          stackTrace: stackTrace,
+        );
         await _clearTokens();
         rethrow;
       }
@@ -140,43 +155,31 @@ class AuthRepository {
           }
         }
       }
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Failed to parse auth error response.',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
     return false;
   }
 
   Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    final refresh = prefs.getString(_refreshKey);
-    final access = prefs.getString(_accessKey);
+    final refresh = await _local.getRefreshToken();
+    final access = await _local.getAccessToken();
 
     if (refresh != null &&
         refresh.isNotEmpty &&
         access != null &&
         access.isNotEmpty) {
-      final response = await _client.post(
-        AppEndpoints.logout(),
-        headers: {
-          'accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $access',
-        },
-        body: jsonEncode({'refresh': refresh}),
-      );
-
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        throw Exception(_extractMessage(response.body) ?? 'Logout xatosi.');
-      }
+      await _remote.logout(accessToken: access, refreshToken: refresh);
     }
 
     await _clearTokens();
   }
 
-  Future<void> _clearTokens() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_accessKey);
-    await prefs.remove(_refreshKey);
-    await prefs.remove(_expiryKey);
-  }
+  Future<void> _clearTokens() => _local.clearTokens();
 
   Future<String?> _refreshAccessToken() async {
     final inFlight = _ongoingRefresh;
@@ -196,31 +199,16 @@ class AuthRepository {
   }
 
   Future<String?> _refreshAccessTokenInternal() async {
-    final prefs = await SharedPreferences.getInstance();
-    final refresh = prefs.getString(_refreshKey);
+    final refresh = await _local.getRefreshToken();
     if (refresh == null) return null;
 
-    final response = await _client.post(
-      AppEndpoints.refreshToken(),
-      headers: const {
-        'accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({'refresh': refresh}),
-    );
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final access = await _handleAuthResponse(response.body);
-      return access ?? prefs.getString(_accessKey);
-    }
-
-    throw Exception(
-      _extractMessage(response.body) ?? 'Tokenni yangilashda xatolik.',
-    );
+    final body = await _remote.refreshToken(refreshToken: refresh);
+    final access = await _handleAuthResponse(body);
+    return access ?? await _local.getAccessToken();
   }
 
   Future<String?> _handleAuthResponse(String body) async {
-    final decoded = jsonDecode(body) as Map<String, dynamic>;
+    final decoded = _decodeAuthBody(body);
     final data = decoded['data'] is Map<String, dynamic>
         ? decoded['data'] as Map<String, dynamic>
         : decoded;
@@ -231,17 +219,28 @@ class AuthRepository {
       return null;
     }
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_accessKey, access);
-    if (refresh != null && refresh.isNotEmpty) {
-      await prefs.setString(_refreshKey, refresh);
-    }
-
     final exp = _decodeExpiry(access);
-    if (exp != null) {
-      await prefs.setInt(_expiryKey, exp);
-    }
+    await _local.saveTokens(
+      accessToken: access,
+      refreshToken: refresh,
+      expiry: exp,
+    );
     return access;
+  }
+
+  Map<String, dynamic> _decodeAuthBody(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+    } catch (error) {
+      throw ParsingFailure(
+        'Auth javob formatini o‘qib bo‘lmadi.',
+        cause: error,
+      );
+    }
+    throw const ParsingFailure('Auth javob formati noto‘g‘ri.');
   }
 
   int? _decodeExpiry(String jwt) {
@@ -253,29 +252,19 @@ class AuthRepository {
           jsonDecode(utf8.decode(base64Url.decode(normalized)))
               as Map<String, dynamic>;
       return payload['exp'] as int?;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Failed to decode access token expiry.',
+        error: error,
+        stackTrace: stackTrace,
+      );
       return null;
     }
   }
 
-  String? _extractMessage(String body) {
-    try {
-      final json = jsonDecode(body);
-      if (json is Map<String, dynamic>) {
-        final message = json['message']?.toString();
-        if (message != null && message.isNotEmpty) {
-          return message;
-        }
-        final detail = json['detail']?.toString();
-        if (detail != null && detail.isNotEmpty) {
-          return detail;
-        }
-      }
-    } catch (_) {}
-    return null;
-  }
-
   void dispose() {
-    _client.close();
+    if (_ownsClient) {
+      _client.close();
+    }
   }
 }

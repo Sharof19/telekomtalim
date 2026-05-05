@@ -1,156 +1,139 @@
 import 'package:flutter/material.dart';
-import 'package:uztelecom/core/routing/app_route_args.dart';
+import 'package:uztelecom/core/routing/app_route_registry.dart';
 import 'package:uztelecom/core/routing/app_routes.dart';
-import 'package:uztelecom/ui/pages/auth_pages/login_screen.dart';
-import 'package:uztelecom/ui/pages/auth_pages/otp_page.dart';
-import 'package:uztelecom/ui/pages/auth_pages/splash_screen.dart';
-import 'package:uztelecom/ui/pages/certificates_page.dart';
-import 'package:uztelecom/ui/pages/content_webview_page.dart';
-import 'package:uztelecom/ui/pages/courses_hub_page.dart';
-import 'package:uztelecom/ui/pages/darslar_page.dart';
-import 'package:uztelecom/ui/pages/exam_attempts_page.dart';
-import 'package:uztelecom/ui/pages/exam_session_page.dart';
-import 'package:uztelecom/ui/pages/exams_page.dart';
-import 'package:uztelecom/ui/pages/home_page.dart';
-import 'package:uztelecom/ui/pages/my_courses_page.dart';
-import 'package:uztelecom/ui/pages/notifications_page.dart';
-import 'package:uztelecom/ui/pages/profil.dart';
-import 'package:uztelecom/ui/pages/settings_pages/language_page.dart';
-import 'package:uztelecom/ui/pages/settings_pages/profile_info_page.dart';
-import 'package:uztelecom/ui/pages/settings_pages/settings_page.dart';
-import 'package:uztelecom/ui/pages/settings_pages/support_page.dart';
-import 'package:uztelecom/ui/pages/statistics_page.dart';
-import 'package:uztelecom/ui/pages/table_page.dart';
-import 'package:uztelecom/ui/widgets/connectivity_gate.dart';
 
 class AppRouter {
   static const String initialRoute = AppRoutes.splash;
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
-    switch (settings.name) {
-      case AppRoutes.splash:
-        return _guardedPage(settings, const SplashScreen());
-      case AppRoutes.login:
-        return _guardedPage(settings, const LoginPage());
-      case AppRoutes.otp:
-        final args = settings.arguments;
-        final login = switch (args) {
-          OtpRouteArgs(:final login) => login,
-          String value => value,
-          _ => '',
-        };
-        return _guardedPage(settings, OtpPage(login: login));
-      case AppRoutes.home:
-        return _guardedPage(settings, const HomePage());
-      case AppRoutes.notifications:
-        return _guardedPage(settings, const NotificationsPage());
-      case AppRoutes.coursesHub:
-        return _guardedPage(settings, const CoursesHubPage());
-      case AppRoutes.courses:
-        return _guardedPage(settings, const CoursesPage());
-      case AppRoutes.myCourses:
-        return _guardedPage(settings, const MyCoursesPage());
-      case AppRoutes.webinars:
-        return _guardedPage(settings, const TablePage());
-      case AppRoutes.exams:
-        return _guardedPage(settings, const ExamsPage());
-      case AppRoutes.certificates:
-        return _guardedPage(settings, const CertificatesPage());
-      case AppRoutes.profile:
-        return _guardedPage(settings, const ProfilePage());
-      case AppRoutes.settings:
-        return _guardedPage(settings, const SettingsPage());
-      case AppRoutes.language:
-        return _guardedPage(settings, const LanguagePage());
-      case AppRoutes.support:
-        return _page(settings, const SupportPage());
-      case AppRoutes.profileInfo:
-        return _guardedPage(settings, const ProfileInfoPage());
-      case AppRoutes.statistics:
-        return _guardedPage(settings, const StatisticsPage());
-      case AppRoutes.courseInfo:
-        final args = settings.arguments;
-        if (args is! CourseInfoRouteArgs) {
-          return _unknownRoute(settings);
-        }
-        return _guardedPage(
-          settings,
-          CourseInfoPage(
-            courseId: args.courseId,
-            initialItem: args.initialItem,
-            useMyCoursesDetailApi: args.useMyCoursesDetailApi,
-          ),
+    final routeName = settings.name;
+    if (routeName == null || routeName.isEmpty) {
+      return _unknownRoute(settings, issue: 'Route name is null or empty.');
+    }
+
+    final entry = AppRouteRegistry.find(routeName);
+    if (entry == null) {
+      return _unknownRoute(settings, issue: 'Route is not registered.');
+    }
+
+    try {
+      return entry.toRoute(settings);
+    } on AppRouteBuildException catch (error) {
+      if (routeName == AppRoutes.otp) {
+        return _redirectToLogin(
+          issue:
+              'OTP route requires valid OtpRouteArgs. Redirected to login. ${error.message}',
         );
-      case AppRoutes.examSession:
-        final args = settings.arguments;
-        if (args is! ExamSessionRouteArgs) {
-          return _unknownRoute(settings);
-        }
-        return _page(
-          settings,
-          ExamSessionPage(
-            examId: args.examId,
-            session: args.session,
-            title: args.title,
-          ),
-        );
-      case AppRoutes.examAttempts:
-        final args = settings.arguments;
-        if (args is! ExamAttemptsRouteArgs) {
-          return _unknownRoute(settings);
-        }
-        return _page(
-          settings,
-          ExamAttemptsPage(examId: args.examId, examTitle: args.examTitle),
-        );
-      case AppRoutes.examResult:
-        final args = settings.arguments;
-        if (args is! ExamResultRouteArgs) {
-          return _unknownRoute(settings);
-        }
-        return _page(
-          settings,
-          ExamResultPage(
-            examId: args.examId,
-            examTitle: args.examTitle,
-            attemptNumber: args.attemptNumber,
-          ),
-        );
-      case AppRoutes.contentWebview:
-        final args = settings.arguments;
-        if (args is! ContentWebviewRouteArgs) {
-          return _unknownRoute(settings);
-        }
-        return _page(
-          settings,
-          ContentWebviewPage(
-            url: args.url,
-            title: args.title,
-            fallbackVideoUrl: args.fallbackVideoUrl,
-          ),
-        );
-      case AppRoutes.myApplications:
-        return _guardedPage(settings, const MyApplicationsPage());
-      default:
-        return _unknownRoute(settings);
+      }
+      return _unknownRoute(settings, issue: error.message);
+    } catch (error) {
+      return _unknownRoute(
+        settings,
+        issue: 'Route build failed: ${error.runtimeType}.',
+      );
     }
   }
 
-  static MaterialPageRoute<dynamic> _guardedPage(
-    RouteSettings settings,
-    Widget child,
-  ) {
-    return _page(settings, ConnectivityGate(child: child));
+  static MaterialPageRoute<dynamic> _unknownRoute(
+    RouteSettings settings, {
+    String? issue,
+  }) {
+    return MaterialPageRoute(
+      settings: settings,
+      builder: (_) => _UnknownRoutePage(
+        routeName: settings.name,
+        arguments: settings.arguments,
+        issue: issue,
+      ),
+    );
   }
 
-  static MaterialPageRoute<dynamic> _page(
-    RouteSettings settings,
-    Widget child,
-  ) {
-    return MaterialPageRoute(builder: (_) => child, settings: settings);
+  static Route<dynamic> _redirectToLogin({required String issue}) {
+    final loginEntry = AppRouteRegistry.find(AppRoutes.login);
+    if (loginEntry != null) {
+      return loginEntry.toRoute(
+        RouteSettings(name: AppRoutes.login, arguments: null),
+      );
+    }
+    return _unknownRoute(
+      const RouteSettings(name: AppRoutes.login),
+      issue: issue,
+    );
   }
+}
 
-  static MaterialPageRoute<dynamic> _unknownRoute(RouteSettings settings) {
-    return _guardedPage(settings, const SplashScreen());
+class _UnknownRoutePage extends StatelessWidget {
+  final String? routeName;
+  final Object? arguments;
+  final String? issue;
+
+  const _UnknownRoutePage({this.routeName, this.arguments, this.issue});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final bg = Theme.of(context).scaffoldBackgroundColor;
+    final routeLabel = routeName == null || routeName!.isEmpty
+        ? '<null>'
+        : routeName!;
+
+    return Scaffold(
+      backgroundColor: bg,
+      appBar: AppBar(
+        backgroundColor: bg,
+        elevation: 0,
+        foregroundColor: scheme.onSurface,
+        title: const Text(
+          'Route error',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Unknown route or invalid arguments.',
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Route: $routeLabel',
+              style: TextStyle(color: scheme.onSurface),
+            ),
+            if (arguments != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Arguments: ${arguments.runtimeType}',
+                style: TextStyle(color: scheme.onSurface),
+              ),
+            ],
+            if (issue != null && issue!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                issue!,
+                style: TextStyle(
+                  color: scheme.onSurface.withValues(alpha: 0.72),
+                ),
+              ),
+            ],
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => Navigator.of(
+                context,
+              ).pushNamedAndRemoveUntil(AppRoutes.splash, (route) => false),
+              child: const Text('Back to splash'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

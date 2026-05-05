@@ -1,4 +1,8 @@
+import 'package:uztelecom/core/errors/app_failure.dart';
+
 bool isNoInternetError(Object error) {
+  if (AppFailure.isNetworkError(error)) return true;
+
   final message = error.toString().toLowerCase();
   return message.contains('socketexception') ||
       message.contains('failed host lookup') ||

@@ -2,10 +2,16 @@ import 'package:uztelecom/core/config/app_config.dart';
 
 abstract final class AppEndpoints {
   static Uri login() => AppConfig.apiV1Uri('login/');
+  static Uri oauthAuthorizeUrl() => AppConfig.apiV1Uri('oauth/authorize-url/');
+  static Uri oauthCallbackExchange() =>
+      AppConfig.apiV1Uri('oauth/callback-exchange/');
   static Uri verifyCode() => AppConfig.apiV1Uri('verify-code/');
   static Uri resendCode() => AppConfig.apiV1Uri('resend-code/');
+  static Uri forgotPassword() => AppConfig.apiV1Uri('forgot-password/');
+  static Uri changePassword() => AppConfig.apiV1Uri('change-password/');
   static Uri refreshToken() => AppConfig.apiV1Uri('refresh-token/');
   static Uri logout() => AppConfig.apiV1Uri('logout/');
+  static Uri createPassword() => AppConfig.apiV1Uri('create-password/');
 
   static Uri profile() => AppConfig.apiV1Uri('profile/');
   static Uri changeProfile() => AppConfig.apiV1Uri('change-profile/');

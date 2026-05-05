@@ -1,216 +1,75 @@
-import 'dart:convert';
-
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uztelecom/core/config/app_endpoints.dart';
+import 'package:uztelecom/data/datasources/local/profile_local_data_source.dart';
+import 'package:uztelecom/data/datasources/remote/api_client.dart';
+import 'package:uztelecom/data/datasources/remote/profile_remote_data_source.dart';
+import 'package:uztelecom/data/models/profile_models.dart';
 
 import 'auth_repository.dart';
 
 class ProfileRepository {
-  ProfileRepository({http.Client? client, AuthRepository? authService})
-    : _client = client ?? http.Client(),
-      _authService = authService ?? AuthRepository();
-
-  final http.Client _client;
-  final AuthRepository _authService;
-
-  static const _fullNameKey = 'profile_full_name';
-  static const _studentIdKey = 'profile_student_id';
-  static const _usernameKey = 'profile_username';
-  static const _imageUrlKey = 'profile_image_url';
-
-  Future<ProfileInfo?> getCachedProfile() async {
-    final prefs = await SharedPreferences.getInstance();
-    final fullName = prefs.getString(_fullNameKey);
-    final phone = prefs.getString(_studentIdKey);
-    final email = prefs.getString(_usernameKey);
-    final roleName = prefs.getString(_imageUrlKey);
-    if (fullName == null && phone == null && email == null) return null;
-    return ProfileInfo(
-      fullName: fullName ?? 'Foydalanuvchi',
-      phone: phone,
-      email: email,
-      roleName: roleName,
+  factory ProfileRepository({
+    http.Client? client,
+    AuthRepository? authService,
+    ApiClient? apiClient,
+    bool? ownsClient,
+  }) {
+    final resolvedClient = client ?? http.Client();
+    final resolvedAuthService =
+        authService ?? AuthRepository(client: resolvedClient);
+    final resolvedLocal = ProfileLocalDataSource();
+    return ProfileRepository._(
+      client: resolvedClient,
+      ownsClient: ownsClient ?? client == null,
+      apiClient:
+          apiClient ??
+          ApiClient(
+            client: resolvedClient,
+            authorizedRequest: resolvedAuthService.authorizedRequest,
+          ),
+      local: resolvedLocal,
     );
   }
 
-  Future<void> clearCachedProfile() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_fullNameKey);
-    await prefs.remove(_studentIdKey);
-    await prefs.remove(_usernameKey);
-    await prefs.remove(_imageUrlKey);
-  }
+  ProfileRepository._({
+    required http.Client client,
+    required bool ownsClient,
+    required ApiClient apiClient,
+    required ProfileLocalDataSource local,
+  }) : _client = client,
+       _ownsClient = ownsClient,
+       _local = local,
+       _remote = ProfileRemoteDataSource(apiClient: apiClient);
+
+  final http.Client _client;
+  final bool _ownsClient;
+  final ProfileLocalDataSource _local;
+  final ProfileRemoteDataSource _remote;
+
+  Future<ProfileInfo?> getCachedProfile() => _local.getCachedProfile();
+
+  Future<void> clearCachedProfile() => _local.clearCachedProfile();
 
   Future<ProfileInfo> fetchProfile({bool forceRefresh = false}) async {
     if (!forceRefresh) {
       final cached = await getCachedProfile();
       if (cached != null) return cached;
     }
-
-    final response = await _authService.authorizedRequest(
-      request: (token) => _client.get(
-        AppEndpoints.profile(),
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      ),
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception(
-        _extractMessage(response.body) ??
-            'Profil ma\'lumotlarini olishda xatolik.',
-      );
-    }
-
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    final data = body['data'] as Map<String, dynamic>?;
-    if (data == null) {
-      throw Exception('Profil ma\'lumotlari mavjud emas.');
-    }
-
-    final profile = ProfileInfo(
-      fullName: data['full_name']?.toString() ?? 'Foydalanuvchi',
-      phone: data['phone']?.toString(),
-      email: data['email']?.toString(),
-      roleName: (data['selected_role'] as Map<String, dynamic>?)?['name']
-          ?.toString(),
-    );
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_fullNameKey, profile.fullName);
-    if (profile.phone != null) {
-      await prefs.setString(_studentIdKey, profile.phone!);
-    }
-    if (profile.email != null) {
-      await prefs.setString(_usernameKey, profile.email!);
-    }
-    if (profile.roleName != null) {
-      await prefs.setString(_imageUrlKey, profile.roleName!);
-    }
-
+    final profile = await _remote.fetchProfile();
+    await _local.saveProfile(profile);
     return profile;
   }
 
-  Future<EditableProfileInfo> fetchEditableProfile() async {
-    final response = await _authService.authorizedRequest(
-      request: (token) => _client.get(
-        AppEndpoints.profile(),
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      ),
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception(
-        _extractMessage(response.body) ??
-            'Profil ma\'lumotlarini olishda xatolik.',
-      );
-    }
-
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    final data = body['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
-
-    return EditableProfileInfo(
-      fullName: data['full_name']?.toString() ?? '',
-      birthdate: data['birthdate']?.toString(),
-      photo: data['photo']?.toString() ?? '',
-      position: data['position']?.toString() ?? '',
-      email: data['email']?.toString() ?? '',
-      genInformation: data['gen_information']?.toString() ?? '',
-    );
-  }
+  Future<EditableProfileInfo> fetchEditableProfile() =>
+      _remote.fetchEditableProfile();
 
   Future<void> updateProfile(EditableProfileInfo profile) async {
-    final payload = <String, dynamic>{
-      'full_name': profile.fullName,
-      'photo': profile.photo,
-      'position': profile.position,
-      'email': profile.email,
-      'gen_information': profile.genInformation,
-    };
-    if (profile.birthdate != null && profile.birthdate!.isNotEmpty) {
-      payload['birthdate'] = profile.birthdate;
-    }
-
-    final response = await _authService.authorizedRequest(
-      request: (token) => _client.patch(
-        AppEndpoints.changeProfile(),
-        headers: {
-          'accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(payload),
-      ),
-    );
-
-    if (response.statusCode != 200 &&
-        response.statusCode != 201 &&
-        response.statusCode != 202 &&
-        response.statusCode != 204) {
-      throw Exception(
-        _extractMessage(response.body) ??
-            'Profil ma\'lumotlarini yangilashda xatolik.',
-      );
-    }
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_fullNameKey, profile.fullName);
-    if (profile.email.isNotEmpty) {
-      await prefs.setString(_usernameKey, profile.email);
-    } else {
-      await prefs.remove(_usernameKey);
-    }
-  }
-
-  String? _extractMessage(String body) {
-    try {
-      final json = jsonDecode(body);
-      if (json is Map<String, dynamic>) {
-        return json['message']?.toString();
-      }
-    } catch (_) {}
-    return null;
+    await _remote.updateProfile(profile);
+    await _local.updateCachedEditableProfile(profile);
   }
 
   void dispose() {
-    _client.close();
+    if (_ownsClient) {
+      _client.close();
+    }
   }
-}
-
-class ProfileInfo {
-  final String fullName;
-  final String? phone;
-  final String? email;
-  final String? roleName;
-
-  const ProfileInfo({
-    required this.fullName,
-    this.phone,
-    this.email,
-    this.roleName,
-  });
-}
-
-class EditableProfileInfo {
-  final String fullName;
-  final String? birthdate;
-  final String photo;
-  final String position;
-  final String email;
-  final String genInformation;
-
-  const EditableProfileInfo({
-    required this.fullName,
-    required this.birthdate,
-    required this.photo,
-    required this.position,
-    required this.email,
-    required this.genInformation,
-  });
 }

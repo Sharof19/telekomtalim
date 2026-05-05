@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:uztelecom/ui/l10n/tr.dart';
 import 'package:uztelecom/core/theme/app_colors.dart';
+import 'package:uztelecom/ui/utils/network_error.dart';
 
 class StatusBanner {
   static Future<void> show(
@@ -12,14 +13,17 @@ class StatusBanner {
     String? message,
     String? actionLabel,
     VoidCallback? onAction,
+    bool normalizeNetworkMessage = true,
   }) async {
     final color = success ? AppColors.success : AppColors.error;
-    final resolvedMessage = _friendlyMessage(context, message);
+    final resolvedMessage = normalizeNetworkMessage
+        ? _friendlyMessage(context, message)
+        : message;
     final buttonLabel =
         actionLabel ??
         (success
-            ? tr(context, uz: 'Davom etish', ru: 'Продолжить')
-            : tr(context, uz: 'Yopish', ru: 'Закрыть'));
+            ? tr(context, TrKey.continueAction)
+            : tr(context, TrKey.closeAction));
 
     await showDialog(
       context: context,
@@ -29,16 +33,16 @@ class StatusBanner {
         final maxWidth = math.min(width, 360.0);
         return Center(
           child: Material(
-            color: Colors.transparent,
+            color: AppColors.transparent,
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 18),
               width: maxWidth,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.white,
                 borderRadius: BorderRadius.circular(26),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.14),
+                    color: AppColors.black.withValues(alpha: 0.14),
                     blurRadius: 18,
                     offset: const Offset(0, 10),
                   ),
@@ -62,7 +66,7 @@ class StatusBanner {
                             width: 64,
                             height: 64,
                             decoration: const BoxDecoration(
-                              color: Colors.white,
+                              color: AppColors.white,
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -86,7 +90,7 @@ class StatusBanner {
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
-                              color: Colors.black87,
+                              color: AppColors.lightText,
                             ),
                           ),
                           if (resolvedMessage != null &&
@@ -97,7 +101,7 @@ class StatusBanner {
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 fontSize: 14,
-                                color: Color(0xFF5F6472),
+                                color: AppColors.textSecondary,
                                 height: 1.4,
                               ),
                             ),
@@ -108,7 +112,7 @@ class StatusBanner {
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: color,
-                                foregroundColor: Colors.white,
+                                foregroundColor: AppColors.white,
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 14,
                                 ),
@@ -140,16 +144,8 @@ class StatusBanner {
 
 String? _friendlyMessage(BuildContext context, String? message) {
   if (message == null || message.isEmpty) return message;
-  final lower = message.toLowerCase();
-  if (lower.contains('socketexception') ||
-      lower.contains('failed host lookup') ||
-      lower.contains('network is unreachable') ||
-      lower.contains('connection failed')) {
-    return tr(
-      context,
-      uz: 'Internetga ulanish yo‘q. Iltimos, aloqani tekshiring.',
-      ru: 'Нет подключения к интернету. Проверьте соединение.',
-    );
+  if (isNoInternetError(message)) {
+    return tr(context, TrKey.internetgaUlanishYoqIltimosAloqani);
   }
   return message;
 }

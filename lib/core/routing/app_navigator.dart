@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uztelecom/core/routing/app_route_args.dart';
 import 'package:uztelecom/core/routing/app_router.dart';
 import 'package:uztelecom/core/routing/app_routes.dart';
-import 'package:uztelecom/data/repositories/courses_repository.dart';
-import 'package:uztelecom/data/repositories/exams_repository.dart';
+import 'package:uztelecom/ui/pages/shared/no_internet_page.dart';
 
 export 'package:uztelecom/core/routing/app_route_args.dart';
 export 'package:uztelecom/core/routing/app_router.dart';
@@ -22,6 +21,21 @@ class AppNavigator {
     Object? arguments,
   }) {
     return Navigator.of(context).pushNamed<T>(routeName, arguments: arguments);
+  }
+
+  static Future<T?> pushPage<T>(
+    BuildContext context, {
+    required WidgetBuilder builder,
+    RouteSettings? settings,
+    bool fullscreenDialog = false,
+  }) {
+    return Navigator.of(context).push<T>(
+      MaterialPageRoute(
+        builder: builder,
+        settings: settings,
+        fullscreenDialog: fullscreenDialog,
+      ),
+    );
   }
 
   static Future<T?> replaceNamed<T, TO>(
@@ -48,17 +62,44 @@ class AppNavigator {
     return replaceNamed<T, TO>(context, AppRoutes.home, result: result);
   }
 
+  static Future<T?> replaceWithCreatePassword<T, TO>(
+    BuildContext context, {
+    TO? result,
+  }) {
+    return replaceNamed<T, TO>(
+      context,
+      AppRoutes.createPassword,
+      result: result,
+    );
+  }
+
+  static Future<T?> replaceWithChangePassword<T, TO>(
+    BuildContext context, {
+    TO? result,
+  }) {
+    return replaceNamed<T, TO>(
+      context,
+      AppRoutes.changePassword,
+      result: result,
+    );
+  }
+
   static Future<T?> replaceWithOtp<T, TO>(
     BuildContext context, {
     required String login,
+    bool resetPassword = false,
     TO? result,
   }) {
     return replaceNamed<T, TO>(
       context,
       AppRoutes.otp,
-      arguments: OtpRouteArgs(login: login),
+      arguments: OtpRouteArgs(login: login, resetPassword: resetPassword),
       result: result,
     );
+  }
+
+  static Future<T?> pushForgotPassword<T>(BuildContext context) {
+    return pushNamed<T>(context, AppRoutes.forgotPassword);
   }
 
   static Future<T?> resetToSplash<T>(BuildContext context) {
@@ -118,7 +159,7 @@ class AppNavigator {
   static Future<T?> pushCourseInfo<T>(
     BuildContext context, {
     required int courseId,
-    CourseItem? initialItem,
+    CourseInfoInitialData? initialData,
     bool useMyCoursesDetailApi = false,
   }) {
     return pushNamed<T>(
@@ -126,7 +167,7 @@ class AppNavigator {
       AppRoutes.courseInfo,
       arguments: CourseInfoRouteArgs(
         courseId: courseId,
-        initialItem: initialItem,
+        initialData: initialData,
         useMyCoursesDetailApi: useMyCoursesDetailApi,
       ),
     );
@@ -135,7 +176,7 @@ class AppNavigator {
   static Future<T?> pushExamSession<T>(
     BuildContext context, {
     required int examId,
-    required ExamSession session,
+    required ExamSessionData session,
     required String title,
   }) {
     return pushNamed<T>(
@@ -192,6 +233,17 @@ class AppNavigator {
         title: title,
         fallbackVideoUrl: fallbackVideoUrl,
       ),
+    );
+  }
+
+  static Future<T?> pushNoInternetPage<T>(
+    BuildContext context, {
+    required VoidCallback onRetry,
+  }) {
+    return pushPage<T>(
+      context,
+      settings: const RouteSettings(name: 'no-internet'),
+      builder: (_) => NoInternetPage(onRetry: onRetry),
     );
   }
 }

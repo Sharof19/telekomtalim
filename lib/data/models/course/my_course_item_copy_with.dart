@@ -1,0 +1,51 @@
+part of 'package:uztelecom/data/models/my_course_item.dart';
+
+extension _MyCourseItemCopyWithX on MyCourseItem {
+  MyCourseItem _myCourseItemCopyWith({
+    int? id,
+    String? status,
+    String? photo,
+    String? mainVideo,
+    String? filePath,
+    String? launchUrl,
+    String? fullQuery,
+    String? duration,
+    String? trainerName,
+    int? listenerCount,
+    double? progressPercent,
+    int? completedActivities,
+    int? totalActivities,
+    String? titleUz,
+    String? titleRu,
+    String? descriptionUz,
+    String? descriptionRu,
+    String? languageUz,
+    String? languageRu,
+    String? audienceUz,
+    String? audienceRu,
+  }) {
+    return MyCourseItem(
+      id: id ?? this.id,
+      status: status ?? this.status,
+      photo: photo ?? this.photo,
+      mainVideo: mainVideo ?? this.mainVideo,
+      filePath: filePath ?? this.filePath,
+      launchUrl: launchUrl ?? this.launchUrl,
+      fullQuery: fullQuery ?? this.fullQuery,
+      duration: duration ?? this.duration,
+      trainerName: trainerName ?? this.trainerName,
+      listenerCount: listenerCount ?? this.listenerCount,
+      progressPercent: progressPercent ?? this.progressPercent,
+      completedActivities: completedActivities ?? this.completedActivities,
+      totalActivities: totalActivities ?? this.totalActivities,
+      titleUz: titleUz ?? this.titleUz,
+      titleRu: titleRu ?? this.titleRu,
+      descriptionUz: descriptionUz ?? this.descriptionUz,
+      descriptionRu: descriptionRu ?? this.descriptionRu,
+      languageUz: languageUz ?? this.languageUz,
+      languageRu: languageRu ?? this.languageRu,
+      audienceUz: audienceUz ?? this.audienceUz,
+      audienceRu: audienceRu ?? this.audienceRu,
+    );
+  }
+}

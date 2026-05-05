@@ -35,7 +35,7 @@ android {
         applicationId = "uz.uztelecom.talim"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        // Camera/ML plugins require at least SDK 23
+        // Camera/ML and secure storage plugins require at least SDK 23.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

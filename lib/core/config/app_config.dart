@@ -1,11 +1,23 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 abstract final class AppConfig {
+  static const Set<String> _bundledPublicEnvKeys = {
+    'API_BASE_URL',
+    'API_V1_PATH',
+    'HRM_OAUTH_REDIRECT_URI',
+    'LRS_BASE_URL',
+  };
+  static final RegExp _secretLikeKeyPattern = RegExp(
+    r'(SECRET|PASSWORD|TOKEN|PRIVATE|CLIENT_SECRET|API_KEY|ACCESS_KEY)',
+    caseSensitive: false,
+  );
+
   static bool _loaded = false;
 
   static Future<void> load() async {
     if (_loaded) return;
     await dotenv.load(fileName: '.env');
+    _validateBundledEnv();
     _loaded = true;
   }
 
@@ -19,6 +31,11 @@ abstract final class AppConfig {
 
   static String get lrsBaseUrl =>
       _normalizeBaseUrl(_read('LRS_BASE_URL', 'https://lrs.uztelecom.uz'));
+
+  static String get hrmOauthRedirectUri => _read(
+    'HRM_OAUTH_REDIRECT_URI',
+    'https://mobile.uztelecom.uz/oauth/hrm/callback',
+  );
 
   static Uri apiV1Uri(String path, {Map<String, String>? queryParameters}) {
     final normalizedPath = _trimLeadingSlash(path);
@@ -57,6 +74,20 @@ abstract final class AppConfig {
       return fallback;
     }
     return value;
+  }
+
+  static void _validateBundledEnv() {
+    final unsafeKeys = dotenv.env.keys.where((key) {
+      return !_bundledPublicEnvKeys.contains(key) ||
+          _secretLikeKeyPattern.hasMatch(key);
+    }).toList()..sort();
+
+    if (unsafeKeys.isEmpty) return;
+
+    throw StateError(
+      'Bundled .env may only contain public app configuration. '
+      'Move secrets out of Flutter assets: ${unsafeKeys.join(', ')}.',
+    );
   }
 
   static String _normalizeBaseUrl(String value) =>

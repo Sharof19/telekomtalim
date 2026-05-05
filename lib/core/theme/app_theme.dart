@@ -5,8 +5,8 @@ class AppTheme {
   static ThemeData light() {
     const scheme = ColorScheme.light(
       primary: AppColors.brandBlue,
-      secondary: AppColors.accentBlue,
-      surface: AppColors.lightSurface,
+      secondary: AppColors.brandBlue,
+      surface: AppColors.white,
       onPrimary: AppColors.white,
       onSecondary: AppColors.white,
       onSurface: AppColors.lightText,
@@ -19,7 +19,7 @@ class AppTheme {
       colorScheme: scheme,
       scaffoldBackgroundColor: AppColors.lightBackground,
       splashFactory: NoSplash.splashFactory,
-      highlightColor: Colors.transparent,
+      highlightColor: AppColors.transparent,
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.lightBackground,
         foregroundColor: AppColors.lightText,
@@ -38,7 +38,7 @@ class AppTheme {
 
   static ThemeData dark() {
     const scheme = ColorScheme.dark(
-      primary: AppColors.brandBlueDark,
+      primary: AppColors.brandBlue,
       secondary: AppColors.accentAmber,
       surface: AppColors.darkSurface,
       onPrimary: AppColors.white,
@@ -54,7 +54,7 @@ class AppTheme {
       colorScheme: scheme,
       scaffoldBackgroundColor: AppColors.darkBackground,
       splashFactory: NoSplash.splashFactory,
-      highlightColor: Colors.transparent,
+      highlightColor: AppColors.transparent,
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.darkBackground,
         foregroundColor: AppColors.darkText,
