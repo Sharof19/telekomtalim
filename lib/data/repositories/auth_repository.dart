@@ -28,11 +28,15 @@ class AuthRepository {
   Future<void> requestLogin({
     required String login,
     required String password,
-  }) => _remote.requestLogin(login: login, password: password);
+  }) async {
+    await _clearTokens();
+    await _remote.requestLogin(login: login, password: password);
+  }
 
   Future<OAuthAuthorizeData> createOauthAuthorizeUrl({
     required String redirectUri,
-  }) {
+  }) async {
+    await _clearTokens();
     return _remote.createOauthAuthorizeUrl(redirectUri: redirectUri);
   }
 
@@ -57,8 +61,9 @@ class AuthRepository {
   Future<void> resendCode({required String login}) =>
       _remote.resendCode(login: login);
 
-  Future<void> forgotPassword({required String phone}) {
-    return _remote.forgotPassword(phone: phone);
+  Future<void> forgotPassword({required String phone}) async {
+    await _clearTokens();
+    await _remote.forgotPassword(phone: phone);
   }
 
   Future<void> createPassword({
@@ -169,14 +174,16 @@ class AuthRepository {
     final refresh = await _local.getRefreshToken();
     final access = await _local.getAccessToken();
 
-    if (refresh != null &&
-        refresh.isNotEmpty &&
-        access != null &&
-        access.isNotEmpty) {
-      await _remote.logout(accessToken: access, refreshToken: refresh);
+    try {
+      if (refresh != null &&
+          refresh.isNotEmpty &&
+          access != null &&
+          access.isNotEmpty) {
+        await _remote.logout(accessToken: access, refreshToken: refresh);
+      }
+    } finally {
+      await _clearTokens();
     }
-
-    await _clearTokens();
   }
 
   Future<void> _clearTokens() => _local.clearTokens();

@@ -6,6 +6,7 @@ import 'package:uztelecom/application/use_cases/auth/auth_use_cases.dart';
 import 'package:uztelecom/application/use_cases/courses/course_use_cases.dart';
 import 'package:uztelecom/application/use_cases/exams/exam_use_cases.dart';
 import 'package:uztelecom/application/use_cases/media/media_use_cases.dart';
+import 'package:uztelecom/application/use_cases/notifications/notification_use_cases.dart';
 import 'package:uztelecom/application/use_cases/profile/profile_use_cases.dart';
 import 'package:uztelecom/application/use_cases/schedule/schedule_use_cases.dart';
 import 'package:uztelecom/ui/providers/app/app_providers.dart';
@@ -84,6 +85,9 @@ class _AppProviderScopeState extends State<AppProviderScope> {
         Provider<LoadScheduleUseCase>.value(value: services.loadSchedule),
         Provider<JoinPublicMeetingUseCase>.value(
           value: services.joinPublicMeeting,
+        ),
+        Provider<LoadNotificationsUseCase>.value(
+          value: services.loadNotifications,
         ),
         ChangeNotifierProvider<ThemeModeProvider>.value(
           value: widget.themeProvider,

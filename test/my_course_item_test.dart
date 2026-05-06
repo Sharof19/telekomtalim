@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:uztelecom/data/models/course_item.dart';
 import 'package:uztelecom/data/models/my_course_item.dart';
 
 void main() {
@@ -34,8 +35,14 @@ void main() {
 
     expect(item.id, 22);
     expect(item.titleUz, 'Elektr xavfsizligi');
-    expect(item.photo, '/media/edu_course/photos/photo_2026-04-30_01-42-48.jpg');
-    expect(item.mainVideo, '/media/edu_course/main_videos/tb1-done_b8Boh6c.mp4');
+    expect(
+      item.photo,
+      '/media/edu_course/photos/photo_2026-04-30_01-42-48.jpg',
+    );
+    expect(
+      item.mainVideo,
+      '/media/edu_course/main_videos/tb1-done_b8Boh6c.mp4',
+    );
     expect(
       item.filePath,
       'edu_resources/lrs/unpacked/17/scormdriver/indexAPI.html',
@@ -47,5 +54,34 @@ void main() {
     expect(item.progressPercent, 0);
     expect(item.completedActivities, 0);
     expect(item.totalActivities, 0);
+  });
+
+  test('parses main video from nested media object', () {
+    final item = CourseItem.fromJson({
+      'id': 7,
+      'name_uz': 'Kurs',
+      'main_video': {'url': '/media/edu_course/main_videos/intro.mp4'},
+      'edu_resources': {
+        'id': 17,
+        'file_path': 'edu_resources/lrs/unpacked/17/scormdriver/indexAPI.html',
+      },
+    });
+
+    expect(item.mainVideo, '/media/edu_course/main_videos/intro.mp4');
+  });
+
+  test('keeps root main video when edu resource is flattened', () {
+    final item = MyCourseItem.fromJson({
+      'id': 22,
+      'name_uz': 'Elektr xavfsizligi',
+      'main_video': '/media/edu_course/main_videos/tb1-done.mp4',
+      'edu_resources': {
+        'id': 17,
+        'main_video': null,
+        'file_path': 'edu_resources/lrs/unpacked/17/scormdriver/indexAPI.html',
+      },
+    });
+
+    expect(item.mainVideo, '/media/edu_course/main_videos/tb1-done.mp4');
   });
 }

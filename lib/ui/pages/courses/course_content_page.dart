@@ -27,7 +27,6 @@ class ContentWebviewPage extends StatefulWidget {
 class _ContentWebviewPageState extends State<ContentWebviewPage> {
   late final BuildAuthorizedVideoHeadersUseCase _buildVideoHeaders;
   late final WebViewController _controller;
-  bool _isLoading = true;
   bool _isVideo = false;
   VideoPlayerController? _videoController;
   String? _videoError;
@@ -58,16 +57,12 @@ class _ContentWebviewPageState extends State<ContentWebviewPage> {
           },
           onPageFinished: (_) {
             if (mounted) {
-              setState(() {
-                _isLoading = false;
-              });
+              setState(() {});
             }
           },
           onWebResourceError: (_) {
             if (mounted) {
-              setState(() {
-                _isLoading = false;
-              });
+              setState(() {});
             }
           },
         ),
@@ -148,25 +143,18 @@ class _ContentWebviewPageState extends State<ContentWebviewPage> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final bg = Theme.of(context).scaffoldBackgroundColor;
     if (!_isVideo) {
       _controller.setBackgroundColor(bg);
     }
     return Scaffold(
       backgroundColor: bg,
-      body: _isVideo ? _buildVideoBody(context) : _buildWebBody(scheme),
+      body: _isVideo ? _buildVideoBody(context) : _buildWebBody(),
     );
   }
 
-  Widget _buildWebBody(ColorScheme scheme) {
-    return Stack(
-      children: [
-        WebViewWidget(controller: _controller),
-        if (_isLoading)
-          Center(child: CircularProgressIndicator(color: scheme.primary)),
-      ],
-    );
+  Widget _buildWebBody() {
+    return WebViewWidget(controller: _controller);
   }
 
   Widget _buildVideoBody(BuildContext context) {

@@ -21,10 +21,21 @@ CourseItem _courseItemFromJson(Map<String, dynamic> json) {
   return CourseItem(
     id: (source['id'] is num) ? (source['id'] as num).toInt() : 0,
     status: source['status_display']?.toString(),
-    photo: source['photo']?.toString(),
-    mainVideo: source['main_video']?.toString(),
-    file: source['file']?.toString(),
-    filePath: source['file_path']?.toString(),
+    photo: CourseModelParser.pickMediaPath(source, const ['photo']),
+    mainVideo:
+        CourseModelParser.pickMediaPath(json, const [
+          'main_video',
+          'mainVideo',
+        ]) ??
+        CourseModelParser.pickMediaPath(source, const [
+          'main_video',
+          'mainVideo',
+        ]),
+    file: CourseModelParser.pickMediaPath(source, const ['file']),
+    filePath: CourseModelParser.pickMediaPath(source, const [
+      'file_path',
+      'filePath',
+    ]),
     launchUrl:
         CourseModelParser.pickLaunchUrl(json) ??
         CourseModelParser.pickLaunchUrl(source),

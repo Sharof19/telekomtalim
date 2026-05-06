@@ -16,15 +16,24 @@ abstract final class AppEndpoints {
   static Uri profile() => AppConfig.apiV1Uri('profile/');
   static Uri changeProfile() => AppConfig.apiV1Uri('change-profile/');
 
-  static Uri allowedResources() =>
-      AppConfig.apiV1Uri('listener/allowed-resources/');
-  static Uri allowedResourceDetail(int id) =>
-      AppConfig.apiV1Uri('listener/allowed-resources/$id/detail/');
+  static Uri courseCatalog({int year = 2026}) => AppConfig.apiV1Uri(
+    'acad-year-training-course/catalog/list/',
+    queryParameters: {'year': year.toString()},
+  );
+  static Uri courseCatalogDetail(int id) =>
+      AppConfig.apiV1Uri('acad-year-training-course/catalog/$id/detail/');
 
   static Uri myTrainingCourses() =>
       AppConfig.apiV1Uri('listener/my-training-courses/');
   static Uri myTrainingCourseDetail(int id) =>
       AppConfig.apiV1Uri('listener/my-training-courses/$id/detail/');
+
+  static Uri notifications({bool? isRead}) => AppConfig.apiV1Uri(
+    'notifications/list/',
+    queryParameters: isRead == null ? null : {'is_read': isRead.toString()},
+  );
+  static Uri registerNotificationDevice() =>
+      AppConfig.apiV1Uri('notifications/devices/register/');
 
   static Uri dashboardProgress() => AppConfig.apiV1Uri('dashboard/progress/');
   static Uri dashboardSummary() => AppConfig.apiV1Uri('dashboard/summary/');

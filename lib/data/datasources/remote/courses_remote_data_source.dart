@@ -8,9 +8,11 @@ class CoursesRemoteDataSource {
 
   final ApiClient _apiClient;
 
-  Future<List<CourseItem>> fetchCourses() async {
+  Future<List<CourseItem>> fetchCourses() => _fetchCatalogCourses();
+
+  Future<List<CourseItem>> _fetchCatalogCourses() async {
     final items = <CourseItem>[];
-    Uri? nextUrl = AppEndpoints.allowedResources();
+    Uri? nextUrl = AppEndpoints.courseCatalog();
     var safety = 0;
 
     while (nextUrl != null && safety < 10) {
@@ -21,6 +23,10 @@ class CoursesRemoteDataSource {
       );
 
       final body = ApiClient.decodeObjectBody(response.body);
+      ApiClient.ensureBodyStatusOk(
+        body,
+        fallbackMessage: 'Kurslarni olishda xatolik.',
+      );
       final data = ApiClient.dataList(body);
       items.addAll(
         data.map((e) => CourseItem.fromJson(e as Map<String, dynamic>)),
@@ -34,7 +40,7 @@ class CoursesRemoteDataSource {
 
   Future<CourseItem> fetchCourseDetail(int id) async {
     final response = await _apiClient.get(
-      AppEndpoints.allowedResourceDetail(id),
+      AppEndpoints.courseCatalogDetail(id),
       authorized: true,
     );
     ApiClient.ensureSuccess(
@@ -43,6 +49,10 @@ class CoursesRemoteDataSource {
     );
 
     final body = ApiClient.decodeObjectBody(response.body);
+    ApiClient.ensureBodyStatusOk(
+      body,
+      fallbackMessage: "Kurs ma'lumotlarini olishda xatolik.",
+    );
     final data = ApiClient.dataMap(body);
     return CourseItem.fromJson(data);
   }

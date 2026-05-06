@@ -4,6 +4,7 @@ import 'package:uztelecom/application/use_cases/auth/auth_use_cases.dart';
 import 'package:uztelecom/application/use_cases/courses/course_use_cases.dart';
 import 'package:uztelecom/application/use_cases/exams/exam_use_cases.dart';
 import 'package:uztelecom/application/use_cases/media/media_use_cases.dart';
+import 'package:uztelecom/application/use_cases/notifications/notification_use_cases.dart';
 import 'package:uztelecom/application/use_cases/profile/profile_use_cases.dart';
 import 'package:uztelecom/application/use_cases/schedule/schedule_use_cases.dart';
 import 'package:uztelecom/data/datasources/remote/api_client.dart';
@@ -13,6 +14,7 @@ import 'package:uztelecom/data/repositories/courses_repository.dart';
 import 'package:uztelecom/data/repositories/dashboard_repository.dart';
 import 'package:uztelecom/data/repositories/exams_repository.dart';
 import 'package:uztelecom/data/repositories/my_courses_repository.dart';
+import 'package:uztelecom/data/repositories/notifications_repository.dart';
 import 'package:uztelecom/data/repositories/profile_repository.dart';
 import 'package:uztelecom/data/repositories/schedule_repository.dart';
 
@@ -77,6 +79,12 @@ class AppServices {
       apiClient: apiClient,
       ownsClient: false,
     );
+    notificationsRepository = NotificationsRepository(
+      client: _httpClient,
+      authService: authRepository,
+      apiClient: apiClient,
+      ownsClient: false,
+    );
     dashboardFacade = DashboardFacade(
       dashboardRepository: dashboardRepository,
       myCoursesRepository: myCoursesRepository,
@@ -134,6 +142,9 @@ class AppServices {
     updateProfile = UpdateProfileUseCase(profileRepository: profileRepository);
     loadSchedule = LoadScheduleUseCase(scheduleRepository: scheduleRepository);
     joinPublicMeeting = JoinPublicMeetingUseCase(bbbRepository: bbbRepository);
+    loadNotifications = LoadNotificationsUseCase(
+      notificationsRepository: notificationsRepository,
+    );
   }
 
   final http.Client _httpClient;
@@ -149,6 +160,7 @@ class AppServices {
   late final ProfileRepository profileRepository;
   late final ScheduleRepository scheduleRepository;
   late final BbbRepository bbbRepository;
+  late final NotificationsRepository notificationsRepository;
   late final DashboardFacade dashboardFacade;
   late final CheckAuthStatusUseCase checkAuthStatus;
   late final GetValidAccessTokenUseCase getValidAccessToken;
@@ -177,6 +189,7 @@ class AppServices {
   late final UpdateProfileUseCase updateProfile;
   late final LoadScheduleUseCase loadSchedule;
   late final JoinPublicMeetingUseCase joinPublicMeeting;
+  late final LoadNotificationsUseCase loadNotifications;
 
   http.Client get httpClient => _httpClient;
 
@@ -191,6 +204,7 @@ class AppServices {
     profileRepository.dispose();
     scheduleRepository.dispose();
     bbbRepository.dispose();
+    notificationsRepository.dispose();
     authRepository.dispose();
 
     if (_ownsHttpClient) {

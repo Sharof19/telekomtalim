@@ -70,6 +70,17 @@ class CourseModelParser {
     return null;
   }
 
+  static String? pickMediaPath(Map<String, dynamic> json, List<String> keys) {
+    for (final key in keys) {
+      final value = _stringFromMediaValue(json[key]);
+      if (value != null) return value;
+    }
+    return _findMediaPathDeep(
+      json,
+      keys.map((entry) => entry.toLowerCase()).toSet(),
+    );
+  }
+
   static int? pickInt(Object? value) {
     if (value is num) return value.toInt();
     if (value == null) return null;
@@ -80,6 +91,56 @@ class CourseModelParser {
     if (value is num) return value.toDouble();
     if (value == null) return null;
     return double.tryParse(value.toString());
+  }
+
+  static String? _stringFromMediaValue(Object? value) {
+    if (value == null) return null;
+    if (value is String) {
+      final trimmed = value.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    }
+    if (value is Map) {
+      final map = Map<String, dynamic>.from(value);
+      const nestedKeys = [
+        'url',
+        'file',
+        'path',
+        'src',
+        'href',
+        'absolute_url',
+        'download_url',
+      ];
+      for (final key in nestedKeys) {
+        final nested = _stringFromMediaValue(map[key]);
+        if (nested != null) return nested;
+      }
+    }
+    if (value is List) {
+      for (final item in value) {
+        final nested = _stringFromMediaValue(item);
+        if (nested != null) return nested;
+      }
+    }
+    return null;
+  }
+
+  static String? _findMediaPathDeep(Object? value, Set<String> wantedKeys) {
+    if (value is Map<String, dynamic>) {
+      for (final entry in value.entries) {
+        if (wantedKeys.contains(entry.key.toLowerCase())) {
+          final direct = _stringFromMediaValue(entry.value);
+          if (direct != null) return direct;
+        }
+        final nested = _findMediaPathDeep(entry.value, wantedKeys);
+        if (nested != null) return nested;
+      }
+    } else if (value is List) {
+      for (final item in value) {
+        final nested = _findMediaPathDeep(item, wantedKeys);
+        if (nested != null) return nested;
+      }
+    }
+    return null;
   }
 
   static String? pickTrainerName(Map<String, dynamic> map) {
